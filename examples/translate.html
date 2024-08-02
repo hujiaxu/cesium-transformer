@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Document</title>
+  <script src="https://cesium.com/downloads/cesiumjs/releases/1.88/Build/Cesium/Cesium.js"></script>
+  <link href="https://cesium.com/downloads/cesiumjs/releases/1.88/Build/Cesium/Widgets/widgets.css" rel="stylesheet">
+  <!-- <script type="text/javascript" src="../lib/index.js"></script> -->
+  <style>
+    html,
+    body,
+    #cesiumContainer {
+      width: 100%;
+      height: 100%;
+      margin: 0;
+      padding: 0;
+      overflow: hidden;
+    }
+  </style>
+</head>
+
+<body>
+  <div id="cesiumContainer"></div>
+
+  <script type="module">
+    import Transformer from '../lib/index.js'
+    console.log('Transformer: ', Transformer);
+    const viewer = new Cesium.Viewer('cesiumContainer');
+    viewer.scene.globe.depthTestAgainstTerrain = true;
+
+    const pos = [
+      new Cesium.Cartesian3(
+        -1834051.9741325895,
+        5608007.865243541,
+        2414183.3792176084
+      ),
+      new Cesium.Cartesian3(
+        -1834055.844784437,
+        5608004.334257179,
+        2414188.5648715287
+      ),
+      new Cesium.Cartesian3(
+        -1834061.0465333706,
+        5608004.287396963,
+        2414184.688053879
+      )
+    ];
+
+
+    const createPolygon = (positions, color = Cesium.Color.RED) => {
+
+      if (!positions) {
+        positions = pos
+      }
+      const polygonInstance = new Cesium.GeometryInstance({
+        geometry: new Cesium.PolygonGeometry({
+          polygonHierarchy: new Cesium.PolygonHierarchy(positions),
+          perPositionHeight: true,
+        }),
+        attributes: {
+          color: Cesium.ColorGeometryInstanceAttribute.fromColor(
+            color.withAlpha(0.3),
+          ),
+        },
+        id: 'polygon',
+      });
+
+      const polygonAppearance = new Cesium.MaterialAppearance({
+        material:
+          Cesium.Material.fromType("Color", {
+            color:
+              color.withAlpha(0.3) ||
+              Cesium.Color.fromCssColorString("#00B20F"),
+          }),
+      });
+
+      const matrix = Cesium.Matrix4.fromTranslation(
+        new Cesium.Cartesian3(0, 0, 0.1),
+        new Cesium.Matrix4(),
+      );
+
+      const primitive = new Cesium.Primitive({
+        geometryInstances: polygonInstance,
+        appearance: polygonAppearance,
+        depthFailAppearance: polygonAppearance,
+        releaseGeometryInstances: false,
+        modelMatrix: matrix,
+      });
+
+      return primitive
+    }
+
+
+    const polygon = createPolygon()
+    const element = viewer.scene.primitives.add(polygon)
+    const boundingSphere = Cesium.BoundingSphere.fromPoints(pos)
+
+    viewer.zoomTo(viewer.scene.primitives)
+    const transformer = new Transformer({
+      scene: viewer.scene,
+      element,
+      boundingSphere
+    })
+
+  </script>
+</body>
+
+</html>

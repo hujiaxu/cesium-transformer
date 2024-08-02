@@ -105,7 +105,6 @@ export default class Transformer {
       axis.primitive instanceof Cesium.Primitive &&
       axisArray.includes(Number(axis.id))
     ) {
-      this.activeAxisType = Number(axis.id)
       return {
         activeAxis: axis.primitive,
         activeAxisType: Number(axis.id)
