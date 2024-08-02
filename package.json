@@ -12,6 +12,7 @@
     "prettier:comment": "自动格式化 src 目录下的所有 .ts 文件",
     "prettier": "prettier --write \"src/**/*.ts\"",
     "build:comment": "构建",
+    "watch": "nodemon --ignore dist/ --ignore node_modules/ --watch src/ -C -e js,jsx,ts,tsx,css,less --debug -x 'pnpm run build && yalc publish'",
     "build": "npm run eslint && npm run prettier && rm -rf lib && tsc --build"
   },
   "keywords": [],
