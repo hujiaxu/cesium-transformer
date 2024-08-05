@@ -15,7 +15,7 @@
     "outDir": "lib",
     "baseUrl": "./",
     "strict": true,
-    "forceConsistentCasingInFileNames": true
+    "forceConsistentCasingInFileNames": true,
   },
   "exclude": [
     "lib",

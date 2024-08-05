@@ -1,5 +1,7 @@
 import * as Cesium from 'cesium'
-import TranslationAxis, { AxisType } from './translationAxis'
+import TranslationAxis from './translationAxis'
+import RotationAxis from './rotationAxis'
+import { AxisType } from './baseAxis'
 
 interface Options {
   scene: Cesium.Scene
@@ -74,8 +76,14 @@ export default class Transformer {
 
     const translation = new TranslationAxis({
       scene: this.scene,
-      center: this.center
+      boundingSphere: this.boundingSphere
     })
+
+    const rotation = new RotationAxis({
+      scene: this.scene,
+      boundingSphere: this.boundingSphere
+    })
+    console.log('rotation: ', rotation)
 
     this.translationAxis = translation
     this.registerHandler()

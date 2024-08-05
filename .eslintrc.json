@@ -20,6 +20,7 @@
     ],
     "rules": {
       "prettier/prettier": 2, // 对于不符合prettier规范的写法，eslint会提示报错
-      "spaced-comment": [2, "always"] // 注释后面必须写两个空格
+      "spaced-comment": [2, "always"], // 注释后面必须写两个空格
+      "@typescript-eslint/no-explicit-any": "off"
     }
   }

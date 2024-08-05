@@ -1,38 +1,9 @@
 import * as Cesium from 'cesium'
+import BaseAxis, { AxisOptions, AxisType } from './baseAxis'
 
-interface AxisOptions {
-  scene: Cesium.Scene
-  center: Cesium.Cartesian3
-}
-
-export enum AxisType {
-  X = 0,
-  Y = 1,
-  Z = 2
-}
-
-export default class TranslationAxis {
-  public static get DEFAULT() {
-    return Cesium.Transforms.eastNorthUpToFixedFrame(Cesium.Cartesian3.ZERO)
-  }
-
-  private center: Cesium.Cartesian3
-
-  private scene: Cesium.Scene
-
-  public translationAxis: Cesium.Primitive | undefined
-
-  public directions: Cesium.Cartesian3[] = [
-    Cesium.Cartesian3.UNIT_X,
-    Cesium.Cartesian3.UNIT_Y,
-    Cesium.Cartesian3.UNIT_Z
-  ]
-  public axises: Cesium.Primitive[] = []
-
-  constructor({ scene, center }: AxisOptions) {
-    this.center = center
-
-    this.scene = scene
+export default class TranslationAxis extends BaseAxis {
+  constructor({ scene, boundingSphere }: AxisOptions) {
+    super({ scene, boundingSphere })
     this.createAxis()
   }
 
@@ -46,10 +17,10 @@ export default class TranslationAxis {
     color: Cesium.Color
   }) {
     const ray = new Cesium.Ray(this.center, direction)
-    const point = Cesium.Ray.getPoint(ray, 10)
+    const point = Cesium.Ray.getPoint(ray, this.radius)
     const polyline = new Cesium.PolylineGeometry({
       positions: [this.center, point],
-      width: 10
+      width: 15
       // vertexFormat: Cesium.PolylineMaterialAppearance.VERTEX_FORMAT
     })
     const geometryInstance = new Cesium.GeometryInstance({
@@ -66,9 +37,8 @@ export default class TranslationAxis {
   private createAxisPrimitives() {
     const matrix = Cesium.Transforms.eastNorthUpToFixedFrame(this.center)
 
-    const axisId: AxisType[] = [AxisType.X, AxisType.Y, AxisType.Z]
-
-    const axisColor = [Cesium.Color.RED, Cesium.Color.GREEN, Cesium.Color.BLUE]
+    const axisId = this.axisId
+    const axisColor = this.axisColor
 
     const directions = axisId.map((_, index) => {
       const direction4 = Cesium.Matrix4.getColumn(
@@ -92,14 +62,21 @@ export default class TranslationAxis {
     })
 
     const primitives = geometryInstances.map((geometryInstance, index) => {
+      const appearance = new Cesium.PolylineMaterialAppearance({
+        material: Cesium.Material.fromType('PolylineArrow', {
+          color: axisColor[index]
+        })
+      })
+      const depthFailAppearance = new Cesium.PolylineMaterialAppearance({
+        material: Cesium.Material.fromType('PolylineArrow', {
+          color: axisColor[index].withAlpha(0.5)
+        })
+      })
       return new Cesium.Primitive({
         geometryInstances: [geometryInstance],
         asynchronous: false,
-        appearance: new Cesium.PolylineMaterialAppearance({
-          material: Cesium.Material.fromType('PolylineArrow', {
-            color: axisColor[index]
-          })
-        }),
+        appearance,
+        depthFailAppearance,
         releaseGeometryInstances: false
       })
     })
@@ -115,6 +92,6 @@ export default class TranslationAxis {
       primitiveCollection.add(primitive)
     })
     this.axises = primitives
-    this.translationAxis = this.scene.primitives.add(primitiveCollection)
+    this.scene.primitives.add(primitiveCollection)
   }
 }
