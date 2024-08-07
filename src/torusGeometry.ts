@@ -29,7 +29,6 @@ export default class TorusGeometry {
     tubularSegments = Math.floor(tubularSegments)
 
     if (!arc) arc = 2 * Math.PI
-
     const modelMatrix = Cesium.Transforms.eastNorthUpToFixedFrame(center)
 
     const positions: Cesium.Cartesian3[] = []
@@ -38,7 +37,6 @@ export default class TorusGeometry {
     const st: Cesium.Cartesian2[] = []
     const bitangents: Cesium.Cartesian3[] = []
     const tangents: Cesium.Cartesian3[] = []
-    const colors: number[] = []
 
     for (let j = 0; j <= radialSegments; j++) {
       for (let i = 0; i <= tubularSegments; i++) {
@@ -46,22 +44,22 @@ export default class TorusGeometry {
         const v = (j / radialSegments) * Math.PI * 2
 
         const x = (radius + tube * Math.cos(v)) * Math.cos(u)
-        const y = (radius + tube * Math.cos(v)) * Math.sin(u)
-        const z = tube * Math.sin(v)
+        const z = (radius + tube * Math.cos(v)) * Math.sin(u)
+        const y = tube * Math.sin(v)
 
         const pos = new Cesium.Cartesian3(x, y, z)
-        positions.push(
-          Cesium.Matrix4.multiplyByPoint(
-            modelMatrix,
-            pos,
-            new Cesium.Cartesian3()
-          )
+
+        const worldPos = Cesium.Matrix4.multiplyByPoint(
+          modelMatrix,
+          pos,
+          new Cesium.Cartesian3()
         )
+        positions.push(worldPos)
 
         const cIn = Cesium.Cartesian3.ZERO.clone()
 
         cIn.x = radius * Math.cos(u)
-        cIn.y = radius * Math.sin(u)
+        cIn.z = radius * Math.sin(u)
 
         const normal = Cesium.Cartesian3.subtract(
           pos,
@@ -95,10 +93,6 @@ export default class TorusGeometry {
         )
         Cesium.Cartesian3.normalize(bitangent, bitangent)
         bitangents.push(bitangent)
-
-        const color = Cesium.Color.BLUE.clone()
-
-        colors.push(color.red, color.green, color.blue, color.alpha)
       }
     }
 
@@ -127,25 +121,52 @@ export default class TorusGeometry {
       values: posFloatArray
     })
 
-    const normalsAttr = new Cesium.GeometryAttribute({
-      componentDatatype: Cesium.ComponentDatatype.FLOAT,
-      componentsPerAttribute: 3,
-      values: new Float32Array(Cesium.Cartesian3.packArray(normals))
-    })
+    // const normalsAttr = new Cesium.GeometryAttribute({
+    //   componentDatatype: Cesium.ComponentDatatype.FLOAT,
+    //   componentsPerAttribute: 3,
+    //   values: new Float32Array(Cesium.Cartesian3.packArray(normals))
+    // })
+
+    // const stAttr = new Cesium.GeometryAttribute({
+    //   componentDatatype: Cesium.ComponentDatatype.FLOAT,
+    //   componentsPerAttribute: 2,
+    //   values: new Float32Array(Cesium.Cartesian2.packArray(st))
+    // })
+
+    // const tangentsAttr = new Cesium.GeometryAttribute({
+    //   componentDatatype: Cesium.ComponentDatatype.FLOAT,
+    //   componentsPerAttribute: 3,
+    //   values: new Float32Array(Cesium.Cartesian3.packArray(tangents))
+    // })
+
+    // const bitangentsAttr = new Cesium.GeometryAttribute({
+    //   componentDatatype: Cesium.ComponentDatatype.FLOAT,
+    //   componentsPerAttribute: 3,
+    //   values: new Float32Array(Cesium.Cartesian3.packArray(bitangents))
+    // })
 
     this.attributes = {
-      position: positionsAttr,
-      normal: normalsAttr
+      position: positionsAttr
+      // normal: normalsAttr
+      // st: stAttr
+      // tangent: tangentsAttr,
+      // bitangent: bitangentsAttr
     }
     this.indices = new Uint16Array(indices)
 
     this.geometry = new Cesium.Geometry({
       attributes: this.attributes,
       indices: this.indices,
-      primitiveType: Cesium.PrimitiveType.POINTS,
+      primitiveType: Cesium.PrimitiveType.TRIANGLES,
       boundingSphere: Cesium.BoundingSphere.fromVertices(
         Cesium.Cartesian3.packArray(positions)
       )
     })
+    this.geometry = Cesium.GeometryPipeline.compressVertices(this.geometry)
+    this.geometry = Cesium.GeometryPipeline.computeNormal(this.geometry)
+    // this.geometry = Cesium.GeometryPipeline.computeTangentAndBitangent(
+    //   this.geometry
+    // )
+    console.log('this.geometry: ', this.geometry)
   }
 }

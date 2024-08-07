@@ -1,6 +1,6 @@
 import * as Cesium from 'cesium'
 
-import BaseAxis, { AxisOptions } from './baseAxis'
+import BaseAxis, { AxisOptions, AxisType } from './baseAxis'
 import TorusGeometry from './torusGeometry'
 
 export default class RotationAxis extends BaseAxis {
@@ -10,34 +10,61 @@ export default class RotationAxis extends BaseAxis {
   }
 
   private createRotationAxis() {
+    const primitive = new Cesium.Primitive({
+      geometryInstances: this.createGeometryInstances(),
+      appearance: new Cesium.PerInstanceColorAppearance({
+        flat: true,
+        translucent: false,
+        renderState: {
+          depthTest: {
+            enabled: false
+            // func: Cesium.DepthFunction.LESS_OR_EQUAL
+          }
+        }
+      }),
+      releaseGeometryInstances: false,
+      asynchronous: false
+    })
+    this.axises = this.scene.primitives.add(primitive)
+  }
+
+  private createGeometryInstances() {
     const torusGeometryAttributes: TorusGeometry = new TorusGeometry({
       radius: this.radius,
-      tube: 0.1,
+      tube: 0.05,
       radialSegments: 32,
-      tubularSegments: 10,
+      tubularSegments: 100,
       arc: 2 * Math.PI,
       center: this.center
     })
     const { geometry } = torusGeometryAttributes
 
-    const primitive = new Cesium.Primitive({
-      geometryInstances: new Cesium.GeometryInstance({
+    const geometryInstances = this.axisId.map((id: AxisType, index) => {
+      // const rotationQuaternion = Cesium.Quaternion.fromAxisAngle(
+      //   Cesium.Cartesian3.UNIT_Z,
+      //   Cesium.Math.PI_OVER_TWO
+      // )
+      // const hpr = Cesium.HeadingPitchRoll.fromQuaternion(rotationQuaternion)
+      // console.log('hpr: ', hpr)
+      // const hpr = new Cesium.HeadingPitchRoll(0, 0, 0)
+      // const modelMatrix = Cesium.Matrix4.multiplyByMatrix3(
+      //   Cesium.Matrix4.IDENTITY,
+      //   Cesium.Matrix3.fromQuaternion(rotationQuaternion),
+      //   new Cesium.Matrix4()
+      // )
+      const modelMatrix = Cesium.Matrix4.IDENTITY
+      return new Cesium.GeometryInstance({
         geometry: geometry!,
-        id: 'rotation-axis',
+        id: id.toString(),
         attributes: {
           color: Cesium.ColorGeometryInstanceAttribute.fromColor(
-            Cesium.Color.BLUE.withAlpha(0.3)
+            this.axisColor[index]
           )
-        }
-      }),
-      appearance: new Cesium.PerInstanceColorAppearance({
-        closed: true,
-        translucent: false
-      }),
-      releaseGeometryInstances: false,
-      asynchronous: false
+        },
+        modelMatrix
+      })
     })
-    this.scene.primitives.add(primitive)
-    console.log('primitive: ', primitive)
+
+    return geometryInstances
   }
 }

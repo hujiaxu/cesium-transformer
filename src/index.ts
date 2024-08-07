@@ -74,16 +74,16 @@ export default class Transformer {
 
     this.center = this.boundingSphere.center.clone()
 
-    const translation = new TranslationAxis({
-      scene: this.scene,
-      boundingSphere: this.boundingSphere
-    })
-
     const rotation = new RotationAxis({
       scene: this.scene,
       boundingSphere: this.boundingSphere
     })
     console.log('rotation: ', rotation)
+
+    const translation = new TranslationAxis({
+      scene: this.scene,
+      boundingSphere: this.boundingSphere
+    })
 
     this.translationAxis = translation
     this.registerHandler()
@@ -104,18 +104,22 @@ export default class Transformer {
     return plane
   }
 
-  private getActiveAxisFromMouse(axis: PickObjectInterface | undefined) {
-    if (!axis) return undefined
+  private getActiveAxisFromMouse(
+    pickObjects: PickObjectInterface[] | undefined
+  ) {
+    if (!pickObjects || pickObjects.length === 0) return undefined
 
     const axisArray = [AxisType.X, AxisType.Y, AxisType.Z]
 
-    if (
-      axis.primitive instanceof Cesium.Primitive &&
-      axisArray.includes(Number(axis.id))
-    ) {
-      return {
-        activeAxis: axis.primitive,
-        activeAxisType: Number(axis.id)
+    for (const axis of pickObjects) {
+      if (
+        axis?.primitive instanceof Cesium.Primitive &&
+        axisArray.includes(Number(axis.id))
+      ) {
+        return {
+          activeAxis: axis.primitive,
+          activeAxisType: Number(axis.id)
+        }
       }
     }
   }
@@ -133,9 +137,12 @@ export default class Transformer {
   }
 
   private mouseDown({ position }: { position: Cesium.Cartesian2 }) {
-    const axis = this.scene!.pick(position)
-    this.activeAxis = this.getActiveAxisFromMouse(axis)?.activeAxis
-    this.activeAxisType = this.getActiveAxisFromMouse(axis)?.activeAxisType
+    const objects = this.scene!.pick(position)
+    const activeAxis = this.getActiveAxisFromMouse([objects])
+    if (activeAxis) {
+      this.activeAxis = activeAxis.activeAxis
+      this.activeAxisType = activeAxis.activeAxisType
+    }
   }
   private mouseUp() {
     const scene = this.scene!
@@ -154,9 +161,9 @@ export default class Transformer {
   }) {
     const scene = this.scene!
 
-    const axis = scene.pick(endPosition)
+    const objects = scene.pick(endPosition)
 
-    const currentPointAxis = this.getActiveAxisFromMouse(axis)
+    const currentPointAxis = this.getActiveAxisFromMouse([objects])
     if (currentPointAxis || this.activeAxis) {
       document.body.style.cursor = 'move'
     } else {

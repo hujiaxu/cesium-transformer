@@ -72,6 +72,7 @@ export default class TranslationAxis extends BaseAxis {
           color: axisColor[index].withAlpha(0.5)
         })
       })
+
       return new Cesium.Primitive({
         geometryInstances: [geometryInstance],
         asynchronous: false,
