@@ -2,6 +2,10 @@ import * as Cesium from 'cesium'
 import TranslationAxis from './translationAxis'
 import RotationAxis from './rotationAxis'
 import { AxisType } from './baseAxis'
+import { ModeCollection } from './type'
+import translationImage from '../assets/translation.png'
+import rotation from '../assets/rotation.png'
+import scale from '../assets/scale.png'
 
 interface Options {
   scene: Cesium.Scene
@@ -29,7 +33,10 @@ export default class Transformer {
   private activeAxis: Cesium.Primitive | undefined
   private activeAxisType: AxisType | undefined
 
-  private translationAxis: TranslationAxis | undefined
+  private gizmo: TranslationAxis | RotationAxis | undefined
+  private mode: ModeCollection = ModeCollection.TRANSLATION
+  private gizmoModesBillboard: Cesium.BillboardCollection =
+    new Cesium.BillboardCollection()
 
   private onMouseDown: ({
     position
@@ -74,19 +81,49 @@ export default class Transformer {
 
     this.center = this.boundingSphere.center.clone()
 
-    const rotation = new RotationAxis({
-      scene: this.scene,
-      boundingSphere: this.boundingSphere
-    })
-    console.log('rotation: ', rotation)
+    this.changeMode(ModeCollection.ROTATION)
 
-    const translation = new TranslationAxis({
-      scene: this.scene,
-      boundingSphere: this.boundingSphere
-    })
+    // this.initGizmo()
 
-    this.translationAxis = translation
     this.registerHandler()
+  }
+  initGizmo() {
+    this.scene.primitives.add(this.gizmoModesBillboard)
+
+    this.gizmoModesBillboard.add({
+      position: this.center!,
+      image: rotation,
+      horizontalOrigin: Cesium.HorizontalOrigin.RIGHT,
+      verticalOrigin: Cesium.VerticalOrigin.TOP
+    })
+    this.gizmoModesBillboard.add({
+      position: this.center!,
+      image: scale,
+      horizontalOrigin: Cesium.HorizontalOrigin.LEFT,
+      verticalOrigin: Cesium.VerticalOrigin.BOTTOM
+    })
+    this.gizmoModesBillboard.add({
+      position: this.center!,
+      image: translationImage,
+      horizontalOrigin: Cesium.HorizontalOrigin.LEFT,
+      verticalOrigin: Cesium.VerticalOrigin.TOP
+    })
+  }
+  changeMode(mode: ModeCollection) {
+    this.mode = mode
+    this.gizmo?.destory()
+    if (mode === ModeCollection.TRANSLATION) {
+      this.gizmo = new TranslationAxis({
+        scene: this.scene,
+        boundingSphere: this.boundingSphere
+      })
+    }
+    if (mode === ModeCollection.ROTATION) {
+      this.gizmo = new RotationAxis({
+        scene: this.scene,
+        boundingSphere: this.boundingSphere
+      })
+    }
   }
   private createPlane() {
     if (!this.center) return
@@ -124,15 +161,15 @@ export default class Transformer {
     }
   }
 
-  private updateTranslation(translation: Cesium.Matrix4) {
+  private updateTranslation(newMatrix: Cesium.Matrix4) {
     Cesium.Matrix4.multiply(
-      translation,
       this.element.modelMatrix,
+      newMatrix,
       this.element.modelMatrix
     )
 
-    this.translationAxis?.axises.forEach((axis) => {
-      Cesium.Matrix4.multiply(translation, axis.modelMatrix, axis.modelMatrix)
+    this.gizmo?.axises.forEach((axis) => {
+      Cesium.Matrix4.multiply(axis.modelMatrix, newMatrix, axis.modelMatrix)
     })
   }
 
@@ -199,15 +236,44 @@ export default class Transformer {
       new Cesium.Cartesian3()
     )
 
-    const direction = this.translationAxis!.directions[this.activeAxisType!]
+    const direction = this.gizmo!.directions[this.activeAxisType!]
 
     const distanceByDirection = Cesium.Cartesian3.dot(offset, direction.clone())
 
-    Cesium.Cartesian3.multiplyByScalar(direction, distanceByDirection, offset)
+    const modelMatrix = Cesium.Matrix4.IDENTITY.clone()
 
-    const translation = Cesium.Matrix4.fromTranslation(offset)
+    if (this.mode === ModeCollection.TRANSLATION) {
+      Cesium.Cartesian3.multiplyByScalar(direction, distanceByDirection, offset)
 
-    this.updateTranslation(translation)
+      const translation = Cesium.Matrix4.fromTranslation(offset)
+
+      Cesium.Matrix4.multiply(modelMatrix, translation, modelMatrix)
+    }
+
+    if (this.mode === ModeCollection.ROTATION) {
+      // console.log('distanceByDirection: ', distanceByDirection)
+      const angle = Cesium.Cartesian3.angleBetween(direction, offset)
+      console.log('angle: ', Cesium.Math.toDegrees(angle))
+      const translationToCenter = Cesium.Matrix4.fromTranslation(
+        this.center!.clone()
+      )
+      const rotation = Cesium.Quaternion.fromAxisAngle(
+        direction,
+        angle * distanceByDirection
+      )
+      const rotationMatrix = Cesium.Matrix4.fromRotationTranslation(
+        Cesium.Matrix3.fromQuaternion(rotation)
+      )
+      const translationBack = Cesium.Matrix4.fromTranslation(
+        Cesium.Cartesian3.negate(this.center!, new Cesium.Cartesian3())
+      )
+
+      Cesium.Matrix4.multiply(modelMatrix, translationToCenter, modelMatrix)
+      Cesium.Matrix4.multiply(modelMatrix, rotationMatrix, modelMatrix)
+      Cesium.Matrix4.multiply(modelMatrix, translationBack, modelMatrix)
+    }
+
+    this.updateTranslation(modelMatrix)
 
     scene.screenSpaceCameraController.enableRotate = false
     scene.screenSpaceCameraController.enableTranslate = false

@@ -35,27 +35,12 @@ export default class TranslationAxis extends BaseAxis {
   }
 
   private createAxisPrimitives() {
-    const matrix = Cesium.Transforms.eastNorthUpToFixedFrame(this.center)
-
     const axisId = this.axisId
     const axisColor = this.axisColor
 
-    const directions = axisId.map((_, index) => {
-      const direction4 = Cesium.Matrix4.getColumn(
-        matrix,
-        index,
-        new Cesium.Cartesian4()
-      )
-      return Cesium.Cartesian3.fromCartesian4(
-        direction4,
-        new Cesium.Cartesian3()
-      )
-    })
-    this.directions = directions
-
     const geometryInstances = axisId.map((id: AxisType, index) => {
       return this.createAxisGeometryInstance({
-        direction: directions[index],
+        direction: this.directions[index],
         id: id.toString(),
         color: axisColor[index]
       })
@@ -86,13 +71,10 @@ export default class TranslationAxis extends BaseAxis {
   }
 
   private createAxis() {
-    const primitiveCollection = new Cesium.PrimitiveCollection()
-
     const primitives = this.createAxisPrimitives()
     primitives.forEach((primitive) => {
-      primitiveCollection.add(primitive)
+      this.scene.primitives.add(primitive)
     })
     this.axises = primitives
-    this.scene.primitives.add(primitiveCollection)
   }
 }

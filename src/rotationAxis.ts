@@ -25,7 +25,8 @@ export default class RotationAxis extends BaseAxis {
       releaseGeometryInstances: false,
       asynchronous: false
     })
-    this.axises = this.scene.primitives.add(primitive)
+    this.scene.primitives.add(primitive)
+    this.axises = [primitive]
   }
 
   private createGeometryInstances() {
@@ -40,19 +41,23 @@ export default class RotationAxis extends BaseAxis {
     const { geometry } = torusGeometryAttributes
 
     const geometryInstances = this.axisId.map((id: AxisType, index) => {
-      // const rotationQuaternion = Cesium.Quaternion.fromAxisAngle(
-      //   Cesium.Cartesian3.UNIT_Z,
-      //   Cesium.Math.PI_OVER_TWO
-      // )
-      // const hpr = Cesium.HeadingPitchRoll.fromQuaternion(rotationQuaternion)
-      // console.log('hpr: ', hpr)
-      // const hpr = new Cesium.HeadingPitchRoll(0, 0, 0)
-      // const modelMatrix = Cesium.Matrix4.multiplyByMatrix3(
-      //   Cesium.Matrix4.IDENTITY,
-      //   Cesium.Matrix3.fromQuaternion(rotationQuaternion),
-      //   new Cesium.Matrix4()
-      // )
-      const modelMatrix = Cesium.Matrix4.IDENTITY
+      const rotationQuaternion = Cesium.Quaternion.fromAxisAngle(
+        this.directions[Math.abs(index - 2)],
+        Cesium.Math.toRadians(270)
+      )
+
+      const translationToCenter = Cesium.Matrix4.fromTranslation(this.center)
+      const rotationMatrix = Cesium.Matrix4.fromRotationTranslation(
+        Cesium.Matrix3.fromQuaternion(rotationQuaternion)
+      )
+      const translationBack = Cesium.Matrix4.fromTranslation(
+        Cesium.Cartesian3.negate(this.center, new Cesium.Cartesian3())
+      )
+      const modelMatrix = Cesium.Matrix4.IDENTITY.clone()
+
+      Cesium.Matrix4.multiply(modelMatrix, translationToCenter, modelMatrix)
+      Cesium.Matrix4.multiply(modelMatrix, rotationMatrix, modelMatrix)
+      Cesium.Matrix4.multiply(modelMatrix, translationBack, modelMatrix)
       return new Cesium.GeometryInstance({
         geometry: geometry!,
         id: id.toString(),

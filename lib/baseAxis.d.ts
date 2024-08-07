@@ -18,4 +18,5 @@ export default class BaseAxis {
     axises: Cesium.Primitive[];
     boundingSphere: Cesium.BoundingSphere;
     constructor({ scene, boundingSphere }: AxisOptions);
+    destory(): void;
 }

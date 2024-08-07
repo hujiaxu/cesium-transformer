@@ -37,5 +37,24 @@ export default class BaseAxis {
     this.boundingSphere = boundingSphere
 
     this.scene = scene
+    const matrix = Cesium.Transforms.eastNorthUpToFixedFrame(this.center)
+    const directions = this.axisId.map((_, index) => {
+      const direction4 = Cesium.Matrix4.getColumn(
+        matrix,
+        index,
+        new Cesium.Cartesian4()
+      )
+      return Cesium.Cartesian3.fromCartesian4(
+        direction4,
+        new Cesium.Cartesian3()
+      )
+    })
+    this.directions = directions
+  }
+
+  public destory() {
+    this.axises.forEach((axis) => {
+      this.scene.primitives.remove(axis)
+    })
   }
 }

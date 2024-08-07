@@ -1,4 +1,5 @@
 import * as Cesium from 'cesium';
+import { ModeCollection } from './type';
 interface Options {
     scene: Cesium.Scene;
     element: Cesium.Primitive;
@@ -12,13 +13,17 @@ export default class Transformer {
     private handler;
     private activeAxis;
     private activeAxisType;
-    private translationAxis;
+    private gizmo;
+    private mode;
+    private gizmoModesBillboard;
     private onMouseDown;
     private onMouseUp;
     private onMouseMove;
     constructor({ scene, element, boundingSphere }: Options);
     get isDetoryed(): boolean;
     init(): void;
+    initGizmo(): void;
+    changeMode(mode: ModeCollection): void;
     private createPlane;
     private getActiveAxisFromMouse;
     private updateTranslation;

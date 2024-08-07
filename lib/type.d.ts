@@ -7,3 +7,8 @@ export interface TorusGeometryOptions {
     arc: number;
     center: Cesium.Cartesian3;
 }
+export declare enum ModeCollection {
+    TRANSLATION = "translation",
+    ROTATION = "rotation",
+    SCALE = "scale"
+}
