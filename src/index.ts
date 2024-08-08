@@ -90,7 +90,7 @@ export default class Transformer {
     this.pointPrimitiveCollection = pointPrimitiveCollection
     this.center = this.boundingSphere.center.clone()
 
-    this.changeMode(ModeCollection.ROTATION)
+    this.changeMode(ModeCollection.TRANSLATION)
 
     // this.initGizmo()
 
@@ -164,6 +164,7 @@ export default class Transformer {
     if (!this.center) return
 
     if (!this.gizmo) return
+    if (this.mode !== ModeCollection.ROTATION) return
     const direction = this.gizmo.directions[this.activeAxisType!].clone()
     Cesium.Matrix4.multiplyByPointAsVector(
       this.gizmo.axises[0].modelMatrix,
