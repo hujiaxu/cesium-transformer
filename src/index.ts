@@ -38,6 +38,12 @@ export default class Transformer {
   private gizmoModesBillboard: Cesium.BillboardCollection =
     new Cesium.BillboardCollection()
 
+  private intersectStartPoint: Cesium.PointPrimitive | undefined
+  private intersectEndPoint: Cesium.PointPrimitive | undefined
+  private pointPrimitiveCollection: Cesium.PointPrimitiveCollection | undefined
+
+  private plane: Cesium.Plane | undefined
+
   private onMouseDown: ({
     position
   }: {
@@ -79,6 +85,9 @@ export default class Transformer {
     if (!this.element || !this.boundingSphere)
       throw new Error('element and boundingSphere are required')
 
+    const pointPrimitiveCollection = new Cesium.PointPrimitiveCollection()
+    this.scene.primitives.add(pointPrimitiveCollection)
+    this.pointPrimitiveCollection = pointPrimitiveCollection
     this.center = this.boundingSphere.center.clone()
 
     this.changeMode(ModeCollection.ROTATION)
@@ -128,6 +137,16 @@ export default class Transformer {
   private createPlane() {
     if (!this.center) return
 
+    if (!this.gizmo) return
+
+    if (this.mode === ModeCollection.ROTATION) {
+      const direction = this.gizmo.directions[this.activeAxisType!].clone()
+      return Cesium.Plane.fromPointNormal(
+        this.center,
+        Cesium.Cartesian3.normalize(direction, new Cesium.Cartesian3())
+      )
+    }
+
     const normalCameraDirection = Cesium.Cartesian3.normalize(
       this.scene!.camera.direction,
       new Cesium.Cartesian3()
@@ -139,6 +158,23 @@ export default class Transformer {
     )
 
     return plane
+  }
+
+  private updatePlane() {
+    if (!this.center) return
+
+    if (!this.gizmo) return
+    const direction = this.gizmo.directions[this.activeAxisType!].clone()
+    Cesium.Matrix4.multiplyByPoint(
+      this.gizmo.axises[0].modelMatrix,
+      direction,
+      direction
+    )
+
+    this.plane = Cesium.Plane.fromPointNormal(
+      this.center,
+      Cesium.Cartesian3.normalize(direction, new Cesium.Cartesian3())
+    )
   }
 
   private getActiveAxisFromMouse(
@@ -168,9 +204,9 @@ export default class Transformer {
       this.element.modelMatrix
     )
 
-    this.gizmo?.axises.forEach((axis) => {
-      Cesium.Matrix4.multiply(axis.modelMatrix, newMatrix, axis.modelMatrix)
-    })
+    // this.gizmo?.axises.forEach((axis) => {
+    //   Cesium.Matrix4.multiply(axis.modelMatrix, newMatrix, axis.modelMatrix)
+    // })
   }
 
   private mouseDown({ position }: { position: Cesium.Cartesian2 }) {
@@ -179,6 +215,7 @@ export default class Transformer {
     if (activeAxis) {
       this.activeAxis = activeAxis.activeAxis
       this.activeAxisType = activeAxis.activeAxisType
+      this.updatePlane()
     }
   }
   private mouseUp() {
@@ -188,6 +225,10 @@ export default class Transformer {
 
     scene.screenSpaceCameraController.enableRotate = true
     scene.screenSpaceCameraController.enableTranslate = true
+
+    this.pointPrimitiveCollection!.removeAll()
+    this.intersectStartPoint = undefined
+    this.intersectEndPoint = undefined
   }
   private mouseMove({
     startPosition,
@@ -208,9 +249,15 @@ export default class Transformer {
     }
     if (!Cesium.defined(this.activeAxis)) return
 
-    const plane = this.createPlane()
+    if (!Cesium.defined(this.plane)) {
+      this.plane = this.createPlane()
+    }
+
+    const plane = this.plane
 
     if (!plane) return
+
+    this.plane = plane
 
     const startRay = scene.camera.getPickRay(startPosition)
     const endRay = scene.camera.getPickRay(endPosition)
@@ -230,36 +277,95 @@ export default class Transformer {
     if (!Cesium.defined(startIntersection) || !Cesium.defined(endIntersection))
       return
 
-    const offset = Cesium.Cartesian3.subtract(
-      endIntersection,
-      startIntersection,
-      new Cesium.Cartesian3()
-    )
-
     const direction = this.gizmo!.directions[this.activeAxisType!]
-
-    const distanceByDirection = Cesium.Cartesian3.dot(offset, direction.clone())
 
     const modelMatrix = Cesium.Matrix4.IDENTITY.clone()
 
     if (this.mode === ModeCollection.TRANSLATION) {
+      const offset = Cesium.Cartesian3.subtract(
+        endIntersection,
+        startIntersection,
+        new Cesium.Cartesian3()
+      )
+
+      const distanceByDirection = Cesium.Cartesian3.dot(
+        offset,
+        direction.clone()
+      )
       Cesium.Cartesian3.multiplyByScalar(direction, distanceByDirection, offset)
 
       const translation = Cesium.Matrix4.fromTranslation(offset)
 
       Cesium.Matrix4.multiply(modelMatrix, translation, modelMatrix)
+      this.updateTranslation(modelMatrix)
     }
 
     if (this.mode === ModeCollection.ROTATION) {
-      // console.log('distanceByDirection: ', distanceByDirection)
-      const angle = Cesium.Cartesian3.angleBetween(direction, offset)
-      console.log('angle: ', Cesium.Math.toDegrees(angle))
+      const centerToStartIntersection = Cesium.Cartesian3.subtract(
+        startIntersection,
+        this.center!,
+        new Cesium.Cartesian3()
+      )
+      const centerToEndIntersection = Cesium.Cartesian3.subtract(
+        endIntersection,
+        this.center!,
+        new Cesium.Cartesian3()
+      )
+      const centerToStartIntersectionRay = new Cesium.Ray(
+        this.center!,
+        Cesium.Cartesian3.normalize(
+          centerToStartIntersection,
+          new Cesium.Cartesian3()
+        )
+      )
+      const centerToEndIntersectionRay = new Cesium.Ray(
+        this.center!,
+        Cesium.Cartesian3.normalize(
+          centerToEndIntersection,
+          new Cesium.Cartesian3()
+        )
+      )
+      const cross = Cesium.Cartesian3.cross(
+        centerToStartIntersection,
+        centerToEndIntersection,
+        new Cesium.Cartesian3()
+      )
+      const number = Cesium.Cartesian3.dot(cross, direction)
+      const signal = number / (number ? Math.abs(number) : 1)
+      const startPoint = Cesium.Ray.getPoint(
+        centerToStartIntersectionRay,
+        this.gizmo!.radius
+      )
+      const endPoint = Cesium.Ray.getPoint(
+        centerToEndIntersectionRay,
+        this.gizmo!.radius
+      )
+      const angle = Cesium.Cartesian3.angleBetween(
+        centerToStartIntersection || startPoint,
+        centerToEndIntersection || endPoint
+      )
+      if (!this.intersectStartPoint) {
+        this.intersectStartPoint = this.pointPrimitiveCollection!.add({
+          color: Cesium.Color.YELLOW,
+          position: startPoint,
+          pixelSize: 10
+        })
+      }
+      if (!this.intersectEndPoint) {
+        this.intersectEndPoint = this.pointPrimitiveCollection!.add({
+          color: Cesium.Color.YELLOW,
+          position: endPoint,
+          pixelSize: 10
+        })
+      } else {
+        this.intersectEndPoint.position = endPoint
+      }
       const translationToCenter = Cesium.Matrix4.fromTranslation(
         this.center!.clone()
       )
       const rotation = Cesium.Quaternion.fromAxisAngle(
         direction,
-        angle * distanceByDirection
+        angle * signal
       )
       const rotationMatrix = Cesium.Matrix4.fromRotationTranslation(
         Cesium.Matrix3.fromQuaternion(rotation)

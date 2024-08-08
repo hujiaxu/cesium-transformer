@@ -16,6 +16,10 @@ export default class Transformer {
     private gizmo;
     private mode;
     private gizmoModesBillboard;
+    private intersectStartPoint;
+    private intersectEndPoint;
+    private pointPrimitiveCollection;
+    private plane;
     private onMouseDown;
     private onMouseUp;
     private onMouseMove;
@@ -25,6 +29,7 @@ export default class Transformer {
     initGizmo(): void;
     changeMode(mode: ModeCollection): void;
     private createPlane;
+    private updatePlane;
     private getActiveAxisFromMouse;
     private updateTranslation;
     private mouseDown;
