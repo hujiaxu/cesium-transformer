@@ -160,12 +160,12 @@ export default class Transformer {
     return plane
   }
 
-  private updatePlane() {
+  updatePlane() {
     if (!this.center) return
 
     if (!this.gizmo) return
     const direction = this.gizmo.directions[this.activeAxisType!].clone()
-    Cesium.Matrix4.multiplyByPoint(
+    Cesium.Matrix4.multiplyByPointAsVector(
       this.gizmo.axises[0].modelMatrix,
       direction,
       direction
@@ -197,16 +197,28 @@ export default class Transformer {
     }
   }
 
-  private updateTranslation(newMatrix: Cesium.Matrix4) {
+  private updateMatrix(newMatrix: Cesium.Matrix4) {
     Cesium.Matrix4.multiply(
       this.element.modelMatrix,
       newMatrix,
       this.element.modelMatrix
     )
 
-    // this.gizmo?.axises.forEach((axis) => {
-    //   Cesium.Matrix4.multiply(axis.modelMatrix, newMatrix, axis.modelMatrix)
-    // })
+    this.gizmo?.axises.forEach((axis) => {
+      Cesium.Matrix4.multiply(axis.modelMatrix, newMatrix, axis.modelMatrix)
+    })
+  }
+
+  private getPointToCenterRay(point: Cesium.Cartesian3) {
+    const centerToPoint = Cesium.Cartesian3.subtract(
+      point,
+      this.center!,
+      new Cesium.Cartesian3()
+    )
+    return new Cesium.Ray(
+      this.center!,
+      Cesium.Cartesian3.normalize(centerToPoint, new Cesium.Cartesian3())
+    )
   }
 
   private mouseDown({ position }: { position: Cesium.Cartesian2 }) {
@@ -277,10 +289,9 @@ export default class Transformer {
     if (!Cesium.defined(startIntersection) || !Cesium.defined(endIntersection))
       return
 
-    const direction = this.gizmo!.directions[this.activeAxisType!]
-
     const modelMatrix = Cesium.Matrix4.IDENTITY.clone()
 
+    const direction = this.gizmo!.directions[this.activeAxisType!]
     if (this.mode === ModeCollection.TRANSLATION) {
       const offset = Cesium.Cartesian3.subtract(
         endIntersection,
@@ -297,40 +308,20 @@ export default class Transformer {
       const translation = Cesium.Matrix4.fromTranslation(offset)
 
       Cesium.Matrix4.multiply(modelMatrix, translation, modelMatrix)
-      this.updateTranslation(modelMatrix)
     }
 
     if (this.mode === ModeCollection.ROTATION) {
-      const centerToStartIntersection = Cesium.Cartesian3.subtract(
-        startIntersection,
-        this.center!,
-        new Cesium.Cartesian3()
-      )
-      const centerToEndIntersection = Cesium.Cartesian3.subtract(
-        endIntersection,
-        this.center!,
-        new Cesium.Cartesian3()
-      )
-      const centerToStartIntersectionRay = new Cesium.Ray(
-        this.center!,
-        Cesium.Cartesian3.normalize(
-          centerToStartIntersection,
-          new Cesium.Cartesian3()
-        )
-      )
-      const centerToEndIntersectionRay = new Cesium.Ray(
-        this.center!,
-        Cesium.Cartesian3.normalize(
-          centerToEndIntersection,
-          new Cesium.Cartesian3()
-        )
-      )
+      const centerToStartIntersectionRay =
+        this.getPointToCenterRay(startIntersection)
+      const centerToEndIntersectionRay =
+        this.getPointToCenterRay(endIntersection)
+
       const cross = Cesium.Cartesian3.cross(
-        centerToStartIntersection,
-        centerToEndIntersection,
+        centerToStartIntersectionRay.direction,
+        centerToEndIntersectionRay.direction,
         new Cesium.Cartesian3()
       )
-      const number = Cesium.Cartesian3.dot(cross, direction)
+      const number = Cesium.Cartesian3.dot(cross, plane.normal)
       const signal = number / (number ? Math.abs(number) : 1)
       const startPoint = Cesium.Ray.getPoint(
         centerToStartIntersectionRay,
@@ -341,8 +332,8 @@ export default class Transformer {
         this.gizmo!.radius
       )
       const angle = Cesium.Cartesian3.angleBetween(
-        centerToStartIntersection || startPoint,
-        centerToEndIntersection || endPoint
+        centerToStartIntersectionRay.direction || startPoint,
+        centerToEndIntersectionRay.direction || endPoint
       )
       if (!this.intersectStartPoint) {
         this.intersectStartPoint = this.pointPrimitiveCollection!.add({
@@ -379,7 +370,7 @@ export default class Transformer {
       Cesium.Matrix4.multiply(modelMatrix, translationBack, modelMatrix)
     }
 
-    this.updateTranslation(modelMatrix)
+    this.updateMatrix(modelMatrix)
 
     scene.screenSpaceCameraController.enableRotate = false
     scene.screenSpaceCameraController.enableTranslate = false

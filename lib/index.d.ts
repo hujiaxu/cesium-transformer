@@ -29,9 +29,10 @@ export default class Transformer {
     initGizmo(): void;
     changeMode(mode: ModeCollection): void;
     private createPlane;
-    private updatePlane;
+    updatePlane(): void;
     private getActiveAxisFromMouse;
-    private updateTranslation;
+    private updateMatrix;
+    private getPointToCenterRay;
     private mouseDown;
     private mouseUp;
     private mouseMove;
