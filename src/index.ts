@@ -3,9 +3,10 @@ import TranslationAxis from './translationAxis'
 import RotationAxis from './rotationAxis'
 import { AxisType } from './baseAxis'
 import { ModeCollection } from './type'
-import translationImage from '../assets/translation.png'
+import translation from '../assets/translation.png'
 import rotation from '../assets/rotation.png'
 import scale from '../assets/scale.png'
+import scale1 from '../assets/scale_1.png'
 
 interface Options {
   scene: Cesium.Scene
@@ -26,15 +27,16 @@ export default class Transformer {
 
   public element: Cesium.Primitive
 
-  public boundingSphere: Cesium.BoundingSphere
+  private boundingSphere: Cesium.BoundingSphere
 
+  private cachedCenter: Cesium.Cartesian3 | undefined
   private center: Cesium.Cartesian3 | undefined
   private handler: Cesium.ScreenSpaceEventHandler | undefined
   private activeAxis: Cesium.Primitive | undefined
   private activeAxisType: AxisType | undefined
 
   private gizmo: TranslationAxis | RotationAxis | undefined
-  private mode: ModeCollection = ModeCollection.TRANSLATION
+  private mode: ModeCollection | undefined
   private gizmoModesBillboard: Cesium.BillboardCollection =
     new Cesium.BillboardCollection()
 
@@ -68,7 +70,7 @@ export default class Transformer {
     this.scene = scene
 
     this.element = element
-    this.boundingSphere = boundingSphere
+    this.boundingSphere = boundingSphere.clone()
 
     this.onMouseDown = this.mouseDown.bind(this)
     this.onMouseUp = this.mouseUp.bind(this)
@@ -81,7 +83,7 @@ export default class Transformer {
     return this.handler === undefined
   }
 
-  init() {
+  private init() {
     if (!this.element || !this.boundingSphere)
       throw new Error('element and boundingSphere are required')
 
@@ -89,8 +91,18 @@ export default class Transformer {
     this.scene.primitives.add(pointPrimitiveCollection)
     this.pointPrimitiveCollection = pointPrimitiveCollection
     this.center = this.boundingSphere.center.clone()
+    this.cachedCenter = this.center.clone()
 
     this.changeMode(ModeCollection.TRANSLATION)
+
+    document.addEventListener('keyup', (e) => {
+      if (e.key === 'w') {
+        this.changeMode(ModeCollection.TRANSLATION)
+      }
+      if (e.key === 'e') {
+        this.changeMode(ModeCollection.ROTATION)
+      }
+    })
 
     // this.initGizmo()
 
@@ -99,26 +111,34 @@ export default class Transformer {
   initGizmo() {
     this.scene.primitives.add(this.gizmoModesBillboard)
 
-    this.gizmoModesBillboard.add({
-      position: this.center!,
-      image: rotation,
-      horizontalOrigin: Cesium.HorizontalOrigin.RIGHT,
-      verticalOrigin: Cesium.VerticalOrigin.TOP
-    })
-    this.gizmoModesBillboard.add({
-      position: this.center!,
-      image: scale,
-      horizontalOrigin: Cesium.HorizontalOrigin.LEFT,
-      verticalOrigin: Cesium.VerticalOrigin.BOTTOM
-    })
-    this.gizmoModesBillboard.add({
-      position: this.center!,
-      image: translationImage,
-      horizontalOrigin: Cesium.HorizontalOrigin.LEFT,
-      verticalOrigin: Cesium.VerticalOrigin.TOP
+    const billboardIds = ['translation', 'rotation', 'scale', 'scale1']
+    const images = [translation, rotation, scale, scale1]
+    const horizontalOrigins = [
+      Cesium.HorizontalOrigin.RIGHT,
+      Cesium.HorizontalOrigin.LEFT,
+      Cesium.HorizontalOrigin.RIGHT,
+      Cesium.HorizontalOrigin.LEFT
+    ]
+    const verticalOrigins = [
+      Cesium.VerticalOrigin.BOTTOM,
+      Cesium.VerticalOrigin.BOTTOM,
+      Cesium.VerticalOrigin.TOP,
+      Cesium.VerticalOrigin.TOP
+    ]
+    billboardIds.forEach((id, index) => {
+      this.gizmoModesBillboard.add({
+        position: this.center!,
+        image: images[index],
+        id,
+        scale: 1 / 3,
+        horizontalOrigin: horizontalOrigins[index],
+        verticalOrigin: verticalOrigins[index],
+        disableDepthTestDistance: Number.POSITIVE_INFINITY
+      })
     })
   }
   changeMode(mode: ModeCollection) {
+    if (this.mode === mode) return
     this.mode = mode
     this.gizmo?.destory()
     if (mode === ModeCollection.TRANSLATION) {
@@ -160,22 +180,26 @@ export default class Transformer {
     return plane
   }
 
-  updatePlane() {
+  private updatePlane() {
     if (!this.center) return
 
     if (!this.gizmo) return
-    if (this.mode !== ModeCollection.ROTATION) return
-    const direction = this.gizmo.directions[this.activeAxisType!].clone()
-    Cesium.Matrix4.multiplyByPointAsVector(
-      this.gizmo.axises[0].modelMatrix,
-      direction,
-      direction
-    )
+    // if (this.mode !== ModeCollection.ROTATION) return
+    if (this.mode === ModeCollection.ROTATION) {
+      const direction = this.gizmo.directions[this.activeAxisType!].clone()
+      Cesium.Matrix4.multiplyByPointAsVector(
+        this.gizmo.axises[0].modelMatrix,
+        direction,
+        direction
+      )
 
-    this.plane = Cesium.Plane.fromPointNormal(
-      this.center,
-      Cesium.Cartesian3.normalize(direction, new Cesium.Cartesian3())
-    )
+      this.plane = Cesium.Plane.fromPointNormal(
+        this.center,
+        Cesium.Cartesian3.normalize(direction, new Cesium.Cartesian3())
+      )
+    } else {
+      this.plane = this.createPlane()
+    }
   }
 
   private getActiveAxisFromMouse(
@@ -198,15 +222,81 @@ export default class Transformer {
     }
   }
 
-  private updateMatrix(newMatrix: Cesium.Matrix4) {
+  private updateBoundingSphere(modelMatrix: Cesium.Matrix4) {
+    Cesium.Matrix4.multiplyByPoint(modelMatrix, this.center!, this.center!)
+    this.boundingSphere = new Cesium.BoundingSphere(
+      this.center,
+      this.boundingSphere.radius
+    )
+  }
+
+  private updateTranslation(matrix: Cesium.Matrix4) {
+    const modelMatrix = Cesium.Matrix4.IDENTITY.clone()
+
+    Cesium.Matrix4.multiply(modelMatrix, matrix, modelMatrix)
+    Cesium.Matrix4.multiply(
+      this.gizmoModesBillboard.modelMatrix,
+      matrix,
+      this.gizmoModesBillboard.modelMatrix
+    )
+
+    this.updateBoundingSphere(modelMatrix)
+
+    const elementRotationMatrix = Cesium.Matrix4.getRotation(
+      this.element.modelMatrix,
+      new Cesium.Matrix3()
+    )
+    const elementRotationMatrixInverse = Cesium.Matrix3.inverse(
+      elementRotationMatrix,
+      new Cesium.Matrix3()
+    )
+    Cesium.Matrix4.multiplyByMatrix3(
+      this.element.modelMatrix,
+      elementRotationMatrixInverse,
+      this.element.modelMatrix
+    )
     Cesium.Matrix4.multiply(
       this.element.modelMatrix,
-      newMatrix,
+      modelMatrix,
+      this.element.modelMatrix
+    )
+    Cesium.Matrix4.multiplyByMatrix3(
+      this.element.modelMatrix,
+      elementRotationMatrix,
       this.element.modelMatrix
     )
 
     this.gizmo?.axises.forEach((axis) => {
-      Cesium.Matrix4.multiply(axis.modelMatrix, newMatrix, axis.modelMatrix)
+      Cesium.Matrix4.multiply(axis.modelMatrix, modelMatrix, axis.modelMatrix)
+    })
+  }
+
+  private rotateAroundCenter(
+    rotationMatrix: Cesium.Matrix4,
+    center: Cesium.Cartesian3,
+    result: Cesium.Matrix4
+  ) {
+    const translationToCenter = Cesium.Matrix4.fromTranslation(center.clone())
+    const translationBack = Cesium.Matrix4.fromTranslation(
+      Cesium.Cartesian3.negate(center, new Cesium.Cartesian3())
+    )
+
+    Cesium.Matrix4.multiply(result, translationToCenter, result)
+    Cesium.Matrix4.multiply(result, rotationMatrix, result)
+    Cesium.Matrix4.multiply(result, translationBack, result)
+
+    return result
+  }
+
+  private updateRotation(rotationMatrix: Cesium.Matrix4) {
+    this.rotateAroundCenter(
+      rotationMatrix,
+      this.cachedCenter!,
+      this.element.modelMatrix
+    )
+
+    this.gizmo?.axises.forEach((axis) => {
+      this.rotateAroundCenter(rotationMatrix, this.center!, axis.modelMatrix)
     })
   }
 
@@ -308,7 +398,7 @@ export default class Transformer {
 
       const translation = Cesium.Matrix4.fromTranslation(offset)
 
-      Cesium.Matrix4.multiply(modelMatrix, translation, modelMatrix)
+      this.updateTranslation(translation)
     }
 
     if (this.mode === ModeCollection.ROTATION) {
@@ -353,7 +443,7 @@ export default class Transformer {
         this.intersectEndPoint.position = endPoint
       }
       const translationToCenter = Cesium.Matrix4.fromTranslation(
-        this.center!.clone()
+        this.cachedCenter!.clone()
       )
       const rotation = Cesium.Quaternion.fromAxisAngle(
         direction,
@@ -363,15 +453,15 @@ export default class Transformer {
         Cesium.Matrix3.fromQuaternion(rotation)
       )
       const translationBack = Cesium.Matrix4.fromTranslation(
-        Cesium.Cartesian3.negate(this.center!, new Cesium.Cartesian3())
+        Cesium.Cartesian3.negate(this.cachedCenter!, new Cesium.Cartesian3())
       )
 
       Cesium.Matrix4.multiply(modelMatrix, translationToCenter, modelMatrix)
       Cesium.Matrix4.multiply(modelMatrix, rotationMatrix, modelMatrix)
       Cesium.Matrix4.multiply(modelMatrix, translationBack, modelMatrix)
-    }
 
-    this.updateMatrix(modelMatrix)
+      this.updateRotation(rotationMatrix)
+    }
 
     scene.screenSpaceCameraController.enableRotate = false
     scene.screenSpaceCameraController.enableTranslate = false

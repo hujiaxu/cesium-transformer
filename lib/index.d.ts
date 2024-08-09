@@ -8,7 +8,8 @@ interface Options {
 export default class Transformer {
     scene: Cesium.Scene;
     element: Cesium.Primitive;
-    boundingSphere: Cesium.BoundingSphere;
+    private boundingSphere;
+    private cachedCenter;
     private center;
     private handler;
     private activeAxis;
@@ -25,13 +26,16 @@ export default class Transformer {
     private onMouseMove;
     constructor({ scene, element, boundingSphere }: Options);
     get isDetoryed(): boolean;
-    init(): void;
+    private init;
     initGizmo(): void;
     changeMode(mode: ModeCollection): void;
     private createPlane;
-    updatePlane(): void;
+    private updatePlane;
     private getActiveAxisFromMouse;
-    private updateMatrix;
+    private updateBoundingSphere;
+    private updateTranslation;
+    private rotateAroundCenter;
+    private updateRotation;
     private getPointToCenterRay;
     private mouseDown;
     private mouseUp;

@@ -12,3 +12,4 @@ export declare enum ModeCollection {
     ROTATION = "rotation",
     SCALE = "scale"
 }
+export declare const MODES: ModeCollection[];

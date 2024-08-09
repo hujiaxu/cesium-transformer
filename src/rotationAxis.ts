@@ -4,8 +4,8 @@ import BaseAxis, { AxisOptions, AxisType } from './baseAxis'
 import TorusGeometry from './torusGeometry'
 
 export default class RotationAxis extends BaseAxis {
-  constructor({ scene, boundingSphere }: AxisOptions) {
-    super({ scene, boundingSphere })
+  constructor({ scene, boundingSphere, elementModelMatrix }: AxisOptions) {
+    super({ scene, boundingSphere, elementModelMatrix })
     this.createRotationAxis()
   }
 

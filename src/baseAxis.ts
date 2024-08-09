@@ -3,6 +3,7 @@ import * as Cesium from 'cesium'
 export interface AxisOptions {
   scene: Cesium.Scene
   boundingSphere: Cesium.BoundingSphere
+  elementModelMatrix?: Cesium.Matrix4
 }
 
 export enum AxisType {
@@ -31,13 +32,14 @@ export default class BaseAxis {
 
   public boundingSphere: Cesium.BoundingSphere
 
-  constructor({ scene, boundingSphere }: AxisOptions) {
+  constructor({ scene, boundingSphere, elementModelMatrix }: AxisOptions) {
     this.center = boundingSphere.center
     this.radius = boundingSphere.radius
     this.boundingSphere = boundingSphere
 
     this.scene = scene
     const matrix = Cesium.Transforms.eastNorthUpToFixedFrame(this.center)
+
     const directions = this.axisId.map((_, index) => {
       const direction4 = Cesium.Matrix4.getColumn(
         matrix,
@@ -48,8 +50,20 @@ export default class BaseAxis {
         direction4,
         new Cesium.Cartesian3()
       )
+      // return Cesium.Cartesian3.normalize(direction3, new Cesium.Cartesian3())
     })
+    if (elementModelMatrix) {
+      // Cesium.Matrix4.multiply(matrix, elementModelMatrix, matrix)
+      directions.forEach((direction) => {
+        Cesium.Matrix4.multiplyByPointAsVector(
+          elementModelMatrix,
+          direction,
+          direction
+        )
+      })
+    }
     this.directions = directions
+    console.log('directions: ', directions)
   }
 
   public destory() {

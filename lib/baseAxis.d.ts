@@ -2,6 +2,7 @@ import * as Cesium from 'cesium';
 export interface AxisOptions {
     scene: Cesium.Scene;
     boundingSphere: Cesium.BoundingSphere;
+    elementModelMatrix?: Cesium.Matrix4;
 }
 export declare enum AxisType {
     X = 0,
@@ -17,6 +18,6 @@ export default class BaseAxis {
     directions: Cesium.Cartesian3[];
     axises: Cesium.Primitive[];
     boundingSphere: Cesium.BoundingSphere;
-    constructor({ scene, boundingSphere }: AxisOptions);
+    constructor({ scene, boundingSphere, elementModelMatrix }: AxisOptions);
     destory(): void;
 }

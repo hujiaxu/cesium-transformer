@@ -14,3 +14,8 @@ export enum ModeCollection {
   ROTATION = 'rotation',
   SCALE = 'scale'
 }
+export const MODES = [
+  ModeCollection.TRANSLATION,
+  ModeCollection.ROTATION,
+  ModeCollection.SCALE
+]

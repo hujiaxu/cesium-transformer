@@ -167,6 +167,5 @@ export default class TorusGeometry {
     // this.geometry = Cesium.GeometryPipeline.computeTangentAndBitangent(
     //   this.geometry
     // )
-    console.log('this.geometry: ', this.geometry)
   }
 }
