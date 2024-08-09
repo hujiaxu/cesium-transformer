@@ -50,10 +50,8 @@ export default class BaseAxis {
         direction4,
         new Cesium.Cartesian3()
       )
-      // return Cesium.Cartesian3.normalize(direction3, new Cesium.Cartesian3())
     })
     if (elementModelMatrix) {
-      // Cesium.Matrix4.multiply(matrix, elementModelMatrix, matrix)
       directions.forEach((direction) => {
         Cesium.Matrix4.multiplyByPointAsVector(
           elementModelMatrix,
@@ -63,7 +61,6 @@ export default class BaseAxis {
       })
     }
     this.directions = directions
-    console.log('directions: ', directions)
   }
 
   public destory() {

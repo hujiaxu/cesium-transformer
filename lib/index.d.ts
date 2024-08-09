@@ -9,6 +9,7 @@ export default class Transformer {
     scene: Cesium.Scene;
     element: Cesium.Primitive;
     private boundingSphere;
+    private elementCachedRotationMatrix;
     private cachedCenter;
     private center;
     private handler;
@@ -29,13 +30,16 @@ export default class Transformer {
     private init;
     initGizmo(): void;
     changeMode(mode: ModeCollection): void;
+    private getElementRotationMatrix;
     private createPlane;
     private updatePlane;
     private getActiveAxisFromMouse;
     private updateBoundingSphere;
-    private updateTranslation;
     private rotateAroundCenter;
+    private scaleAroundCenter;
+    private updateTranslation;
     private updateRotation;
+    private updateScale;
     private getPointToCenterRay;
     private mouseDown;
     private mouseUp;
