@@ -35,8 +35,7 @@ export default class Transformer {
     private updatePlane;
     private getActiveAxisFromMouse;
     private updateBoundingSphere;
-    private rotateAroundCenter;
-    private scaleAroundCenter;
+    private linearTransformAroundCenter;
     private updateTranslation;
     private updateRotation;
     private updateScale;

@@ -257,8 +257,8 @@ export default class Transformer {
     )
   }
 
-  private rotateAroundCenter(
-    rotationMatrix: Cesium.Matrix4,
+  private linearTransformAroundCenter(
+    matrix: Cesium.Matrix4,
     center: Cesium.Cartesian3,
     result: Cesium.Matrix4
   ) {
@@ -268,24 +268,7 @@ export default class Transformer {
     )
 
     Cesium.Matrix4.multiply(result, translationToCenter, result)
-    Cesium.Matrix4.multiply(result, rotationMatrix, result)
-    Cesium.Matrix4.multiply(result, translationBack, result)
-
-    return result
-  }
-
-  private scaleAroundCenter(
-    scaleMatrix: Cesium.Matrix4,
-    center: Cesium.Cartesian3,
-    result: Cesium.Matrix4
-  ) {
-    const translationToCenter = Cesium.Matrix4.fromTranslation(center.clone())
-    const translationBack = Cesium.Matrix4.fromTranslation(
-      Cesium.Cartesian3.negate(center, new Cesium.Cartesian3())
-    )
-
-    Cesium.Matrix4.multiply(result, translationToCenter, result)
-    Cesium.Matrix4.multiply(result, scaleMatrix, result)
+    Cesium.Matrix4.multiply(result, matrix, result)
     Cesium.Matrix4.multiply(result, translationBack, result)
   }
 
@@ -335,24 +318,28 @@ export default class Transformer {
       this.elementCachedRotationMatrix,
       new Cesium.Matrix4()
     )
-    this.rotateAroundCenter(
+    this.linearTransformAroundCenter(
       cacheRotationInverse,
       this.cachedCenter!,
       this.element.modelMatrix
     )
-    this.rotateAroundCenter(
+    this.linearTransformAroundCenter(
       rotationMatrix,
       this.cachedCenter!,
       this.element.modelMatrix
     )
-    this.rotateAroundCenter(
+    this.linearTransformAroundCenter(
       this.elementCachedRotationMatrix,
       this.cachedCenter!,
       this.element.modelMatrix
     )
 
     this.gizmo?.axises.forEach((axis) => {
-      this.rotateAroundCenter(rotationMatrix, this.center!, axis.modelMatrix)
+      this.linearTransformAroundCenter(
+        rotationMatrix,
+        this.center!,
+        axis.modelMatrix
+      )
     })
   }
 
@@ -362,13 +349,17 @@ export default class Transformer {
     //   scaleMatrix,
     //   this.element.modelMatrix
     // )
-    this.scaleAroundCenter(
+    this.linearTransformAroundCenter(
       scaleMatrix,
       this.cachedCenter!,
       this.element.modelMatrix
     )
     this.gizmo?.axises.forEach((axis) => {
-      this.scaleAroundCenter(scaleMatrix, this.center!, axis.modelMatrix)
+      this.linearTransformAroundCenter(
+        scaleMatrix,
+        this.center!,
+        axis.modelMatrix
+      )
     })
   }
 
