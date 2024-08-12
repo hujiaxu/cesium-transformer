@@ -31,6 +31,8 @@ export default class Transformer {
 
   private elementCachedRotationMatrix: Cesium.Matrix4 =
     Cesium.Matrix4.IDENTITY.clone()
+  private elementCachedScaleMatrix: Cesium.Matrix4 =
+    Cesium.Matrix4.IDENTITY.clone()
 
   private cachedCenter: Cesium.Cartesian3 | undefined
   private center: Cesium.Cartesian3 | undefined
@@ -148,7 +150,6 @@ export default class Transformer {
     this.mode = mode
     this.gizmo?.destory()
 
-    this.getElementRotationMatrix()
     if (mode === ModeCollection.TRANSLATION) {
       this.gizmo = new TranslationAxis({
         scene: this.scene,
@@ -167,9 +168,11 @@ export default class Transformer {
         boundingSphere: this.boundingSphere
       })
     }
+    this.applyLinearMatrixToGizmo()
   }
 
-  private getElementRotationMatrix() {
+  private applyLinearMatrixToGizmo() {
+    if (!this.gizmo) return
     if (
       Cesium.Matrix4.equals(this.element.modelMatrix, Cesium.Matrix4.IDENTITY)
     )
@@ -180,7 +183,26 @@ export default class Transformer {
     )
     this.elementCachedRotationMatrix =
       Cesium.Matrix4.fromRotationTranslation(rotation)
+
+    const elementScale = Cesium.Matrix4.getScale(
+      this.element.modelMatrix,
+      new Cesium.Cartesian3()
+    )
+    this.gizmo!.radius *= elementScale.x
+    const elementScaleMatrix = Cesium.Matrix4.fromScale(
+      elementScale,
+      new Cesium.Matrix4()
+    )
+    this.elementCachedScaleMatrix = elementScaleMatrix
+    this.gizmo?.axises.forEach((axis) => {
+      this.linearTransformAroundCenter(
+        elementScaleMatrix,
+        this.center!,
+        axis.modelMatrix
+      )
+    })
   }
+
   private createPlane() {
     if (!this.center) return
 
@@ -258,7 +280,7 @@ export default class Transformer {
   }
 
   private linearTransformAroundCenter(
-    matrix: Cesium.Matrix4,
+    matrix: Cesium.Matrix4 | Cesium.Matrix3,
     center: Cesium.Cartesian3,
     result: Cesium.Matrix4
   ) {
@@ -268,7 +290,11 @@ export default class Transformer {
     )
 
     Cesium.Matrix4.multiply(result, translationToCenter, result)
-    Cesium.Matrix4.multiply(result, matrix, result)
+    if (matrix instanceof Cesium.Matrix4) {
+      Cesium.Matrix4.multiply(result, matrix, result)
+    } else if (matrix instanceof Cesium.Matrix3) {
+      Cesium.Matrix4.multiplyByMatrix3(result, matrix, result)
+    }
     Cesium.Matrix4.multiply(result, translationBack, result)
   }
 
@@ -284,17 +310,23 @@ export default class Transformer {
 
     this.updateBoundingSphere(modelMatrix)
 
-    const elementRotationMatrix = Cesium.Matrix4.getRotation(
+    const elementScaleMatrixInverse = Cesium.Matrix4.inverse(
+      this.elementCachedScaleMatrix,
+      new Cesium.Matrix4()
+    )
+
+    const linearMatrix = Cesium.Matrix4.getMatrix3(
       this.element.modelMatrix,
+      new Cesium.Matrix4()
+    )
+    const linearMatrixInverse = Cesium.Matrix3.inverse(
+      linearMatrix,
       new Cesium.Matrix3()
     )
-    const elementRotationMatrixInverse = Cesium.Matrix3.inverse(
-      elementRotationMatrix,
-      new Cesium.Matrix3()
-    )
+
     Cesium.Matrix4.multiplyByMatrix3(
       this.element.modelMatrix,
-      elementRotationMatrixInverse,
+      linearMatrixInverse,
       this.element.modelMatrix
     )
     Cesium.Matrix4.multiply(
@@ -304,12 +336,22 @@ export default class Transformer {
     )
     Cesium.Matrix4.multiplyByMatrix3(
       this.element.modelMatrix,
-      elementRotationMatrix,
+      linearMatrix,
       this.element.modelMatrix
     )
 
     this.gizmo?.axises.forEach((axis) => {
+      this.linearTransformAroundCenter(
+        elementScaleMatrixInverse,
+        this.center!,
+        axis.modelMatrix
+      )
       Cesium.Matrix4.multiply(axis.modelMatrix, modelMatrix, axis.modelMatrix)
+      this.linearTransformAroundCenter(
+        this.elementCachedScaleMatrix,
+        this.center!,
+        axis.modelMatrix
+      )
     })
   }
 
@@ -344,11 +386,6 @@ export default class Transformer {
   }
 
   private updateScale(scaleMatrix: Cesium.Matrix4) {
-    // Cesium.Matrix4.multiply(
-    //   this.element.modelMatrix,
-    //   scaleMatrix,
-    //   this.element.modelMatrix
-    // )
     this.linearTransformAroundCenter(
       scaleMatrix,
       this.cachedCenter!,
