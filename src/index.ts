@@ -7,6 +7,7 @@ import translation from '../assets/translation.png'
 import rotation from '../assets/rotation.png'
 import scale from '../assets/scale.png'
 import scale1 from '../assets/scale_1.png'
+import ScaleAxis from './scaleAxis'
 
 interface Options {
   scene: Cesium.Scene
@@ -40,7 +41,7 @@ export default class Transformer {
   private activeAxis: Cesium.Primitive | undefined
   private activeAxisType: AxisType | undefined
 
-  private gizmo: TranslationAxis | RotationAxis | undefined
+  private gizmo: TranslationAxis | RotationAxis | ScaleAxis | undefined
   private mode: ModeCollection | undefined
   private gizmoModesBillboard: Cesium.BillboardCollection =
     new Cesium.BillboardCollection()
@@ -98,7 +99,7 @@ export default class Transformer {
     this.center = this.boundingSphere.center.clone()
     this.cachedCenter = this.center.clone()
 
-    this.changeMode(ModeCollection.TRANSLATION)
+    this.changeMode(ModeCollection.SCALE)
 
     document.addEventListener('keyup', (e) => {
       if (e.key === 'w') {
@@ -163,7 +164,7 @@ export default class Transformer {
       })
     }
     if (mode === ModeCollection.SCALE) {
-      this.gizmo = new TranslationAxis({
+      this.gizmo = new ScaleAxis({
         scene: this.scene,
         boundingSphere: this.boundingSphere
       })
@@ -391,13 +392,22 @@ export default class Transformer {
       this.cachedCenter!,
       this.element.modelMatrix
     )
-    this.gizmo?.axises.forEach((axis) => {
-      this.linearTransformAroundCenter(
-        scaleMatrix,
-        this.center!,
-        axis.modelMatrix
-      )
-    })
+    // this.gizmo?.axises.forEach((axis) => {
+    //   const id = (axis.geometryInstances as Cesium.GeometryInstance).id
+    //   if (id.includes('box')) {
+    //     this.linearTransformAroundCenter(
+    //       scaleMatrix,
+    //       Cesium.Cartesian3.ZERO.clone(),
+    //       axis.modelMatrix
+    //     )
+    //   } else {
+    //     this.linearTransformAroundCenter(
+    //       scaleMatrix,
+    //       this.center!,
+    //       axis.modelMatrix
+    //     )
+    //   }
+    // })
   }
 
   private getPointToCenterRay(point: Cesium.Cartesian3) {
@@ -515,12 +525,8 @@ export default class Transformer {
             (distanceByDirection / distanceToCamera) * 10 + 1,
             (distanceByDirection / distanceToCamera) * 10 + 1
           )
-          // Cesium.Cartesian3.multiplyByScalar(
-          //   direction,
-          //   (distanceByDirection / distanceToCamera) * 10 + 1,
-          //   new Cesium.Cartesian3()
-          // )
         )
+
         this.updateScale(scale)
       }
     }

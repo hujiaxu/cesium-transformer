@@ -15,6 +15,8 @@ export enum AxisType {
 export default class BaseAxis {
   public center: Cesium.Cartesian3
 
+  public endPoint: Cesium.Cartesian3 = Cesium.Cartesian3.ZERO
+
   public radius: number
 
   public scene: Cesium.Scene

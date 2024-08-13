@@ -11,6 +11,7 @@ export declare enum AxisType {
 }
 export default class BaseAxis {
     center: Cesium.Cartesian3;
+    endPoint: Cesium.Cartesian3;
     radius: number;
     scene: Cesium.Scene;
     axisId: AxisType[];
