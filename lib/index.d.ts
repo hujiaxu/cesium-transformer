@@ -2,15 +2,16 @@ import * as Cesium from 'cesium';
 import { ModeCollection } from './type';
 interface Options {
     scene: Cesium.Scene;
-    element: Cesium.Primitive;
+    element: Cesium.Primitive | Cesium.Cesium3DTileset;
     boundingSphere: Cesium.BoundingSphere;
 }
 export default class Transformer {
     scene: Cesium.Scene;
-    element: Cesium.Primitive;
+    element: Cesium.Primitive | Cesium.Cesium3DTileset;
     private boundingSphere;
+    private gizmoCachedRotationMatrix;
     private elementCachedRotationMatrix;
-    private elementCachedScaleMatrix;
+    elementCachedScaleMatrix: Cesium.Matrix4;
     private cachedCenter;
     private center;
     private handler;
@@ -31,7 +32,7 @@ export default class Transformer {
     private init;
     initGizmo(): void;
     changeMode(mode: ModeCollection): void;
-    private applyLinearMatrixToGizmo;
+    applyLinearMatrixToGizmo(): void;
     private createPlane;
     private updatePlane;
     private getActiveAxisFromMouse;

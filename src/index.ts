@@ -12,7 +12,7 @@ import ScaleAxis from './scaleAxis'
 interface Options {
   scene: Cesium.Scene
 
-  element: Cesium.Primitive
+  element: Cesium.Primitive | Cesium.Cesium3DTileset
 
   boundingSphere: Cesium.BoundingSphere
 }
@@ -26,14 +26,16 @@ interface PickObjectInterface {
 export default class Transformer {
   public scene: Cesium.Scene
 
-  public element: Cesium.Primitive
+  public element: Cesium.Primitive | Cesium.Cesium3DTileset
 
   private boundingSphere: Cesium.BoundingSphere
 
+  private gizmoCachedRotationMatrix: Cesium.Matrix4 =
+    Cesium.Matrix4.IDENTITY.clone()
+
   private elementCachedRotationMatrix: Cesium.Matrix4 =
     Cesium.Matrix4.IDENTITY.clone()
-  private elementCachedScaleMatrix: Cesium.Matrix4 =
-    Cesium.Matrix4.IDENTITY.clone()
+  elementCachedScaleMatrix: Cesium.Matrix4 = Cesium.Matrix4.IDENTITY.clone()
 
   private cachedCenter: Cesium.Cartesian3 | undefined
   private center: Cesium.Cartesian3 | undefined
@@ -42,6 +44,7 @@ export default class Transformer {
   private activeAxisType: AxisType | undefined
 
   private gizmo: TranslationAxis | RotationAxis | ScaleAxis | undefined
+  // private testGizmo: TranslationAxis | RotationAxis | ScaleAxis | undefined
   private mode: ModeCollection | undefined
   private gizmoModesBillboard: Cesium.BillboardCollection =
     new Cesium.BillboardCollection()
@@ -99,7 +102,7 @@ export default class Transformer {
     this.center = this.boundingSphere.center.clone()
     this.cachedCenter = this.center.clone()
 
-    this.changeMode(ModeCollection.SCALE)
+    this.changeMode(ModeCollection.ROTATION)
 
     document.addEventListener('keyup', (e) => {
       if (e.key === 'w') {
@@ -172,7 +175,7 @@ export default class Transformer {
     this.applyLinearMatrixToGizmo()
   }
 
-  private applyLinearMatrixToGizmo() {
+  applyLinearMatrixToGizmo() {
     if (!this.gizmo) return
     if (
       Cesium.Matrix4.equals(this.element.modelMatrix, Cesium.Matrix4.IDENTITY)
@@ -195,6 +198,8 @@ export default class Transformer {
       new Cesium.Matrix4()
     )
     this.elementCachedScaleMatrix = elementScaleMatrix
+
+    this.gizmoCachedRotationMatrix = Cesium.Matrix4.IDENTITY.clone()
     this.gizmo?.axises.forEach((axis) => {
       this.linearTransformAroundCenter(
         elementScaleMatrix,
@@ -234,18 +239,18 @@ export default class Transformer {
     if (!this.center) return
 
     if (!this.gizmo) return
-    // if (this.mode !== ModeCollection.ROTATION) return
     if (this.mode === ModeCollection.ROTATION) {
       const direction = this.gizmo.directions[this.activeAxisType!].clone()
-      Cesium.Matrix4.multiplyByPointAsVector(
-        this.gizmo.axises[0].modelMatrix,
+
+      const resultDirection = Cesium.Matrix4.multiplyByPointAsVector(
+        this.gizmoCachedRotationMatrix,
         direction,
-        direction
+        new Cesium.Cartesian3()
       )
 
       this.plane = Cesium.Plane.fromPointNormal(
         this.center,
-        Cesium.Cartesian3.normalize(direction, new Cesium.Cartesian3())
+        Cesium.Cartesian3.normalize(resultDirection, new Cesium.Cartesian3())
       )
     } else {
       this.plane = this.createPlane()
@@ -262,11 +267,11 @@ export default class Transformer {
     for (const axis of pickObjects) {
       if (
         axis?.primitive instanceof Cesium.Primitive &&
-        axisArray.includes(Number(axis.id))
+        axisArray.includes(Number(axis.id.toString().split('-')[0]))
       ) {
         return {
           activeAxis: axis.primitive,
-          activeAxisType: Number(axis.id)
+          activeAxisType: Number(axis.id.toString().split('-')[0])
         }
       }
     }
@@ -292,9 +297,9 @@ export default class Transformer {
 
     Cesium.Matrix4.multiply(result, translationToCenter, result)
     if (matrix instanceof Cesium.Matrix4) {
-      Cesium.Matrix4.multiply(result, matrix, result)
+      Cesium.Matrix4.multiply(result, matrix.clone(), result)
     } else if (matrix instanceof Cesium.Matrix3) {
-      Cesium.Matrix4.multiplyByMatrix3(result, matrix, result)
+      Cesium.Matrix4.multiplyByMatrix3(result, matrix.clone(), result)
     }
     Cesium.Matrix4.multiply(result, translationBack, result)
   }
@@ -377,9 +382,32 @@ export default class Transformer {
       this.element.modelMatrix
     )
 
-    this.gizmo?.axises.forEach((axis) => {
+    Cesium.Matrix4.multiply(
+      this.gizmoCachedRotationMatrix,
+      rotationMatrix,
+      this.gizmoCachedRotationMatrix
+    )
+    ;(this.gizmo as RotationAxis)?.axises.forEach((axis, index) => {
+      const linearMatrix = Cesium.Matrix4.getMatrix3(
+        (this.gizmo as RotationAxis).cachedModelMatrixs[index],
+        new Cesium.Matrix3()
+      )
+      const linearMatrixInverse = Cesium.Matrix3.inverse(
+        linearMatrix,
+        new Cesium.Matrix3()
+      )
+      this.linearTransformAroundCenter(
+        linearMatrixInverse,
+        this.center!,
+        axis.modelMatrix
+      )
       this.linearTransformAroundCenter(
         rotationMatrix,
+        this.center!,
+        axis.modelMatrix
+      )
+      this.linearTransformAroundCenter(
+        linearMatrix,
         this.center!,
         axis.modelMatrix
       )
@@ -560,14 +588,16 @@ export default class Transformer {
         this.intersectStartPoint = this.pointPrimitiveCollection!.add({
           color: Cesium.Color.YELLOW,
           position: startPoint,
-          pixelSize: 10
+          pixelSize: 10,
+          disableDepthTestDistance: Number.POSITIVE_INFINITY
         })
       }
       if (!this.intersectEndPoint) {
         this.intersectEndPoint = this.pointPrimitiveCollection!.add({
           color: Cesium.Color.YELLOW,
           position: endPoint,
-          pixelSize: 10
+          pixelSize: 10,
+          disableDepthTestDistance: Number.POSITIVE_INFINITY
         })
       } else {
         this.intersectEndPoint.position = endPoint
