@@ -32,7 +32,7 @@ export default class Transformer {
     private init;
     initGizmo(): void;
     changeMode(mode: ModeCollection): void;
-    applyLinearMatrixToGizmo(): void;
+    private applyLinearMatrixToGizmo;
     private createPlane;
     private updatePlane;
     private getActiveAxisFromMouse;

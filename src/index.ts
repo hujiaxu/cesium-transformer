@@ -102,7 +102,7 @@ export default class Transformer {
     this.center = this.boundingSphere.center.clone()
     this.cachedCenter = this.center.clone()
 
-    this.changeMode(ModeCollection.SCALE)
+    this.changeMode(ModeCollection.TRANSLATION)
 
     document.addEventListener('keyup', (e) => {
       if (e.key === 'w') {
@@ -175,7 +175,7 @@ export default class Transformer {
     this.applyLinearMatrixToGizmo()
   }
 
-  applyLinearMatrixToGizmo() {
+  private applyLinearMatrixToGizmo() {
     if (!this.gizmo) return
     if (
       Cesium.Matrix4.equals(this.element.modelMatrix, Cesium.Matrix4.IDENTITY)
@@ -420,22 +420,22 @@ export default class Transformer {
       this.cachedCenter!,
       this.element.modelMatrix
     )
-    // this.gizmo?.axises.forEach((axis) => {
-    //   const id = (axis.geometryInstances as Cesium.GeometryInstance).id
-    //   if (id.includes('box')) {
-    //     this.linearTransformAroundCenter(
-    //       scaleMatrix,
-    //       Cesium.Cartesian3.ZERO.clone(),
-    //       axis.modelMatrix
-    //     )
-    //   } else {
-    //     this.linearTransformAroundCenter(
-    //       scaleMatrix,
-    //       this.center!,
-    //       axis.modelMatrix
-    //     )
-    //   }
-    // })
+    this.gizmo?.axises.forEach((axis) => {
+      const id = (axis.geometryInstances as Cesium.GeometryInstance).id
+      if (id.includes('box')) {
+        this.linearTransformAroundCenter(
+          scaleMatrix,
+          Cesium.Cartesian3.ZERO.clone(),
+          axis.modelMatrix
+        )
+      } else {
+        this.linearTransformAroundCenter(
+          scaleMatrix,
+          this.center!,
+          axis.modelMatrix
+        )
+      }
+    })
   }
 
   private getPointToCenterRay(point: Cesium.Cartesian3) {
