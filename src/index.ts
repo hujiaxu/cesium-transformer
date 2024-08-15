@@ -400,8 +400,22 @@ export default class Transformer {
       scaleMatrix,
       this.gizmoCachedScaleMatrix
     )
+    const cacheRotationInverse = Cesium.Matrix4.inverse(
+      this.elementCachedRotationMatrix,
+      new Cesium.Matrix4()
+    )
+    this.linearTransformAroundCenter(
+      cacheRotationInverse,
+      this.cachedCenter!,
+      this.element.modelMatrix
+    )
     this.linearTransformAroundCenter(
       scaleMatrix,
+      this.cachedCenter!,
+      this.element.modelMatrix
+    )
+    this.linearTransformAroundCenter(
+      this.elementCachedRotationMatrix,
       this.cachedCenter!,
       this.element.modelMatrix
     )
