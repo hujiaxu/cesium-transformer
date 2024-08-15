@@ -33,6 +33,9 @@ export default class Transformer {
   private gizmoCachedRotationMatrix: Cesium.Matrix4 =
     Cesium.Matrix4.IDENTITY.clone()
 
+  private gizmoCachedScaleMatrix: Cesium.Matrix4 =
+    Cesium.Matrix4.IDENTITY.clone()
+
   private elementCachedRotationMatrix: Cesium.Matrix4 =
     Cesium.Matrix4.IDENTITY.clone()
   elementCachedScaleMatrix: Cesium.Matrix4 = Cesium.Matrix4.IDENTITY.clone()
@@ -192,7 +195,6 @@ export default class Transformer {
       this.element.modelMatrix,
       new Cesium.Cartesian3()
     )
-    this.gizmo!.radius *= elementScale.x
     const elementScaleMatrix = Cesium.Matrix4.fromScale(
       elementScale,
       new Cesium.Matrix4()
@@ -200,13 +202,6 @@ export default class Transformer {
     this.elementCachedScaleMatrix = elementScaleMatrix
 
     this.gizmoCachedRotationMatrix = Cesium.Matrix4.IDENTITY.clone()
-    this.gizmo?.axises.forEach((axis) => {
-      this.linearTransformAroundCenter(
-        elementScaleMatrix,
-        this.center!,
-        axis.modelMatrix
-      )
-    })
   }
 
   private createPlane() {
@@ -316,11 +311,6 @@ export default class Transformer {
 
     this.updateBoundingSphere(modelMatrix)
 
-    const elementScaleMatrixInverse = Cesium.Matrix4.inverse(
-      this.elementCachedScaleMatrix,
-      new Cesium.Matrix4()
-    )
-
     const linearMatrix = Cesium.Matrix4.getMatrix3(
       this.element.modelMatrix,
       new Cesium.Matrix4()
@@ -347,17 +337,7 @@ export default class Transformer {
     )
 
     this.gizmo?.axises.forEach((axis) => {
-      this.linearTransformAroundCenter(
-        elementScaleMatrixInverse,
-        this.center!,
-        axis.modelMatrix
-      )
       Cesium.Matrix4.multiply(axis.modelMatrix, modelMatrix, axis.modelMatrix)
-      this.linearTransformAroundCenter(
-        this.elementCachedScaleMatrix,
-        this.center!,
-        axis.modelMatrix
-      )
     })
   }
 
@@ -415,6 +395,11 @@ export default class Transformer {
   }
 
   private updateScale(scaleMatrix: Cesium.Matrix4) {
+    Cesium.Matrix4.multiply(
+      this.gizmoCachedScaleMatrix,
+      scaleMatrix,
+      this.gizmoCachedScaleMatrix
+    )
     this.linearTransformAroundCenter(
       scaleMatrix,
       this.cachedCenter!,

@@ -10,6 +10,7 @@ export default class Transformer {
     element: Cesium.Primitive | Cesium.Cesium3DTileset;
     private boundingSphere;
     private gizmoCachedRotationMatrix;
+    private gizmoCachedScaleMatrix;
     private elementCachedRotationMatrix;
     elementCachedScaleMatrix: Cesium.Matrix4;
     private cachedCenter;
