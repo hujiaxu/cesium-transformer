@@ -26,7 +26,6 @@ export default class RotationAxis extends BaseAxis {
           })
         }),
         asynchronous: false,
-        releaseGeometryInstances: false,
         modelMatrix: Cesium.Matrix4.IDENTITY.clone()
       })
     })
@@ -42,7 +41,7 @@ export default class RotationAxis extends BaseAxis {
 
     const radius = this.radius
 
-    const numPoints = Math.floor(this.radius * 100)
+    const numPoints = Math.floor(this.radius * 10)
     const positions = []
 
     for (let i = 0; i < numPoints; i++) {

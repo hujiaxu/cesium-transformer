@@ -102,7 +102,7 @@ export default class Transformer {
     this.center = this.boundingSphere.center.clone()
     this.cachedCenter = this.center.clone()
 
-    this.changeMode(ModeCollection.ROTATION)
+    this.changeMode(ModeCollection.SCALE)
 
     document.addEventListener('keyup', (e) => {
       if (e.key === 'w') {
@@ -547,13 +547,13 @@ export default class Transformer {
           scene.camera.position,
           this.center!
         )
+        const scaleElements = [1, 1, 1]
+        scaleElements[this.activeAxisType!] =
+          (distanceByDirection / distanceToCamera) * 10 + 1
         const scale = Cesium.Matrix4.fromScale(
-          new Cesium.Cartesian3(
-            (distanceByDirection / distanceToCamera) * 10 + 1,
-            (distanceByDirection / distanceToCamera) * 10 + 1,
-            (distanceByDirection / distanceToCamera) * 10 + 1
-          )
+          Cesium.Cartesian3.fromArray(scaleElements)
         )
+        // const scale = Cesium.Matrix4.fromScale(offset)
 
         this.updateScale(scale)
       }

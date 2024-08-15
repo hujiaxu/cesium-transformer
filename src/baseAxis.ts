@@ -34,9 +34,9 @@ export default class BaseAxis {
 
   public boundingSphere: Cesium.BoundingSphere
 
-  constructor({ scene, boundingSphere, elementModelMatrix }: AxisOptions) {
+  constructor({ scene, boundingSphere }: AxisOptions) {
     this.center = boundingSphere.center
-    this.radius = boundingSphere.radius
+    this.radius = boundingSphere.radius * 0.5
     this.boundingSphere = boundingSphere
 
     this.scene = scene
@@ -53,15 +53,10 @@ export default class BaseAxis {
         new Cesium.Cartesian3()
       )
     })
-    if (elementModelMatrix) {
-      directions.forEach((direction) => {
-        Cesium.Matrix4.multiplyByPointAsVector(
-          elementModelMatrix,
-          direction,
-          direction
-        )
-      })
-    }
+    this.directions = directions
+  }
+
+  public updateDirections(directions: Cesium.Cartesian3[]) {
     this.directions = directions
   }
 

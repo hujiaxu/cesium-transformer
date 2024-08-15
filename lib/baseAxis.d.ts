@@ -19,6 +19,7 @@ export default class BaseAxis {
     directions: Cesium.Cartesian3[];
     axises: Cesium.Primitive[];
     boundingSphere: Cesium.BoundingSphere;
-    constructor({ scene, boundingSphere, elementModelMatrix }: AxisOptions);
+    constructor({ scene, boundingSphere }: AxisOptions);
+    updateDirections(directions: Cesium.Cartesian3[]): void;
     destory(): void;
 }

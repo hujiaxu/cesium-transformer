@@ -8,6 +8,12 @@ import BaseAxis, { AxisOptions, AxisType } from './baseAxis'
 export default class ScaleAxis extends BaseAxis {
   constructor({ scene, boundingSphere }: AxisOptions) {
     super({ scene, boundingSphere })
+    const directions = [
+      Cesium.Cartesian3.UNIT_X,
+      Cesium.Cartesian3.UNIT_Y,
+      Cesium.Cartesian3.UNIT_Z
+    ]
+    this.updateDirections(directions)
     this.createAxis()
   }
 
