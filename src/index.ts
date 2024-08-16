@@ -109,7 +109,7 @@ export default class Transformer {
       this.element.modelMatrix,
       new Cesium.Cartesian3()
     )
-    this.center = Cesium.Cartesian3.equals(elementTranslation, Cesium.Cartesian3.ZERO.clone()) ? this.boundingSphere.center.clone() : elementTranslation
+    this.center = Cesium.Cartesian3.equals(elementTranslation, this.boundingSphere.center.clone()) ? Cesium.Cartesian3.ZERO.clone() : elementTranslation
     this.cachedCenter = this.center.clone()
 
     this.changeMode(ModeCollection.TRANSLATION)
