@@ -15,6 +15,8 @@ interface Options {
   element: Cesium.Primitive | Cesium.Cesium3DTileset
 
   boundingSphere: Cesium.BoundingSphere
+
+  modelMatrix: Cesium.Matrix4
 }
 
 interface PickObjectInterface {
@@ -102,7 +104,12 @@ export default class Transformer {
     const pointPrimitiveCollection = new Cesium.PointPrimitiveCollection()
     this.scene.primitives.add(pointPrimitiveCollection)
     this.pointPrimitiveCollection = pointPrimitiveCollection
-    this.center = this.boundingSphere.center.clone()
+
+    const elementTranslation = Cesium.Matrix4.getTranslation(
+      this.element.modelMatrix,
+      new Cesium.Cartesian3()
+    )
+    this.center = Cesium.Cartesian3.equals(elementTranslation, Cesium.Cartesian3.ZERO.clone()) ? this.boundingSphere.center.clone() : elementTranslation
     this.cachedCenter = this.center.clone()
 
     this.changeMode(ModeCollection.TRANSLATION)
