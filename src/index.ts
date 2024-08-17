@@ -9,14 +9,14 @@ import scale from '../assets/scale.png'
 import scale1 from '../assets/scale_1.png'
 import ScaleAxis from './scaleAxis'
 
+type elementType = Cesium.Primitive | Cesium.Cesium3DTileset | Cesium.Model
+
 interface Options {
   scene: Cesium.Scene
 
-  element: Cesium.Primitive | Cesium.Cesium3DTileset
+  element: elementType
 
   boundingSphere: Cesium.BoundingSphere
-
-  modelMatrix: Cesium.Matrix4
 }
 
 interface PickObjectInterface {
@@ -28,9 +28,12 @@ interface PickObjectInterface {
 export default class Transformer {
   public scene: Cesium.Scene
 
-  public element: Cesium.Primitive | Cesium.Cesium3DTileset
+  public element: elementType
 
   private boundingSphere: Cesium.BoundingSphere
+
+  private elementCenterRelativeBoundingSphere: Cesium.Cartesian3 =
+    Cesium.Cartesian3.ZERO.clone()
 
   private gizmoCachedRotationMatrix: Cesium.Matrix4 =
     Cesium.Matrix4.IDENTITY.clone()
@@ -59,6 +62,8 @@ export default class Transformer {
   private pointPrimitiveCollection: Cesium.PointPrimitiveCollection | undefined
 
   private plane: Cesium.Plane | undefined
+
+  private cacheAngle: number = 0
 
   private onMouseDown: ({
     position
@@ -109,7 +114,19 @@ export default class Transformer {
       this.element.modelMatrix,
       new Cesium.Cartesian3()
     )
-    this.center = Cesium.Cartesian3.equals(elementTranslation, this.boundingSphere.center.clone()) ? Cesium.Cartesian3.ZERO.clone() : elementTranslation
+    console.log('elementTranslation: ', elementTranslation)
+    this.elementCenterRelativeBoundingSphere = Cesium.Cartesian3.subtract(
+      this.boundingSphere.center,
+      elementTranslation,
+      new Cesium.Cartesian3()
+    )
+    console.log(
+      'this.elementCenterRelativeBoundingSphere: ',
+      this.elementCenterRelativeBoundingSphere
+    )
+
+    this.center = this.boundingSphere.center
+    console.log('this.boundingSphere.center: ', this.boundingSphere.center)
     this.cachedCenter = this.center.clone()
 
     this.changeMode(ModeCollection.TRANSLATION)
@@ -355,17 +372,17 @@ export default class Transformer {
     )
     this.linearTransformAroundCenter(
       cacheRotationInverse,
-      this.cachedCenter!,
+      this.elementCenterRelativeBoundingSphere,
       this.element.modelMatrix
     )
     this.linearTransformAroundCenter(
       rotationMatrix,
-      this.cachedCenter!,
+      this.elementCenterRelativeBoundingSphere,
       this.element.modelMatrix
     )
     this.linearTransformAroundCenter(
       this.elementCachedRotationMatrix,
-      this.cachedCenter!,
+      this.elementCenterRelativeBoundingSphere,
       this.element.modelMatrix
     )
 
@@ -590,6 +607,8 @@ export default class Transformer {
         centerToStartIntersectionRay.direction || startPoint,
         centerToEndIntersectionRay.direction || endPoint
       )
+      this.cacheAngle += angle
+      console.log(Cesium.Math.toDegrees(this.cacheAngle))
       if (!this.intersectStartPoint) {
         this.intersectStartPoint = this.pointPrimitiveCollection!.add({
           color: Cesium.Color.YELLOW,
