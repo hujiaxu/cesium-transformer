@@ -8,12 +8,12 @@ import BaseAxis, { AxisOptions, AxisType } from './baseAxis'
 export default class ScaleAxis extends BaseAxis {
   constructor({ scene, boundingSphere }: AxisOptions) {
     super({ scene, boundingSphere })
-    const directions = [
-      Cesium.Cartesian3.UNIT_X,
-      Cesium.Cartesian3.UNIT_Y,
-      Cesium.Cartesian3.UNIT_Z
-    ]
-    this.updateDirections(directions)
+    // const directions = [
+    //   Cesium.Cartesian3.UNIT_X,
+    //   Cesium.Cartesian3.UNIT_Y,
+    //   Cesium.Cartesian3.UNIT_Z
+    // ]
+    // this.updateDirections(directions)
     this.createAxis()
   }
 
@@ -28,6 +28,7 @@ export default class ScaleAxis extends BaseAxis {
   }) {
     const ray = new Cesium.Ray(this.center, direction)
     const point = Cesium.Ray.getPoint(ray, this.radius)
+    const boxEndPoint = Cesium.Ray.getPoint(ray, this.radius * 0.9)
     const polyline = new Cesium.PolylineGeometry({
       positions: [this.center, point],
       width: 5
@@ -47,7 +48,8 @@ export default class ScaleAxis extends BaseAxis {
     })
     const boxGeometryInstance = new Cesium.GeometryInstance({
       geometry: box,
-      modelMatrix: Cesium.Transforms.eastNorthUpToFixedFrame(point),
+      // modelMatrix: Cesium.Matrix4.fromTranslation(point),
+      modelMatrix: Cesium.Transforms.eastNorthUpToFixedFrame(boxEndPoint),
       attributes: {
         color: Cesium.ColorGeometryInstanceAttribute.fromColor(color)
       },

@@ -17,6 +17,7 @@ export default class BaseAxis {
     axisId: AxisType[];
     axisColor: Cesium.Color[];
     directions: Cesium.Cartesian3[];
+    relativeDirections: Cesium.Cartesian3[];
     axises: Cesium.Primitive[];
     boundingSphere: Cesium.BoundingSphere;
     constructor({ scene, boundingSphere }: AxisOptions);

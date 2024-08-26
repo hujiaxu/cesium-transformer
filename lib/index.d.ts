@@ -27,10 +27,10 @@ export default class Transformer {
     private intersectEndPoint;
     private pointPrimitiveCollection;
     private plane;
-    private cacheAngle;
     private onMouseDown;
     private onMouseUp;
     private onMouseMove;
+    private keyEvent;
     constructor({ scene, element, boundingSphere }: Options);
     get isDetoryed(): boolean;
     private init;

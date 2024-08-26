@@ -30,13 +30,19 @@ export default class BaseAxis {
     Cesium.Cartesian3.UNIT_Y,
     Cesium.Cartesian3.UNIT_Z
   ]
+
+  public relativeDirections: Cesium.Cartesian3[] = [
+    Cesium.Cartesian3.UNIT_X,
+    Cesium.Cartesian3.UNIT_Y,
+    Cesium.Cartesian3.UNIT_Z
+  ]
   public axises: Cesium.Primitive[] = []
 
   public boundingSphere: Cesium.BoundingSphere
 
   constructor({ scene, boundingSphere }: AxisOptions) {
     this.center = boundingSphere.center
-    this.radius = boundingSphere.radius * 0.5
+    this.radius = Math.max(boundingSphere.radius * 0.5, 10)
     this.boundingSphere = boundingSphere
 
     this.scene = scene
@@ -54,6 +60,7 @@ export default class BaseAxis {
       )
     })
     this.directions = directions
+    this.relativeDirections = directions
   }
 
   public updateDirections(directions: Cesium.Cartesian3[]) {

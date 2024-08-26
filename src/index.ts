@@ -63,8 +63,6 @@ export default class Transformer {
 
   private plane: Cesium.Plane | undefined
 
-  private cacheAngle: number = 0
-
   private onMouseDown: ({
     position
   }: {
@@ -83,6 +81,8 @@ export default class Transformer {
     endPosition: Cesium.Cartesian2
   }) => void
 
+  private keyEvent: (e: KeyboardEvent) => void
+
   constructor({ scene, element, boundingSphere }: Options) {
     if (!scene) throw new Error('scene is required')
 
@@ -94,6 +94,19 @@ export default class Transformer {
     this.onMouseDown = this.mouseDown.bind(this)
     this.onMouseUp = this.mouseUp.bind(this)
     this.onMouseMove = this.mouseMove.bind(this)
+
+    const keyEvent = (e: KeyboardEvent) => {
+      if (e.key === 'w') {
+        this.changeMode(ModeCollection.TRANSLATION)
+      }
+      if (e.key === 'e') {
+        this.changeMode(ModeCollection.ROTATION)
+      }
+      if (e.key === 'r') {
+        this.changeMode(ModeCollection.SCALE)
+      }
+    }
+    this.keyEvent = keyEvent.bind(this)
 
     this.init()
   }
@@ -114,34 +127,18 @@ export default class Transformer {
       this.element.modelMatrix,
       new Cesium.Cartesian3()
     )
-    console.log('elementTranslation: ', elementTranslation)
     this.elementCenterRelativeBoundingSphere = Cesium.Cartesian3.subtract(
       this.boundingSphere.center,
       elementTranslation,
       new Cesium.Cartesian3()
     )
-    console.log(
-      'this.elementCenterRelativeBoundingSphere: ',
-      this.elementCenterRelativeBoundingSphere
-    )
 
     this.center = this.boundingSphere.center
-    console.log('this.boundingSphere.center: ', this.boundingSphere.center)
     this.cachedCenter = this.center.clone()
 
-    this.changeMode(ModeCollection.TRANSLATION)
+    this.changeMode(ModeCollection.SCALE)
 
-    document.addEventListener('keyup', (e) => {
-      if (e.key === 'w') {
-        this.changeMode(ModeCollection.TRANSLATION)
-      }
-      if (e.key === 'e') {
-        this.changeMode(ModeCollection.ROTATION)
-      }
-      if (e.key === 'r') {
-        this.changeMode(ModeCollection.SCALE)
-      }
-    })
+    document.addEventListener('keyup', this.keyEvent)
 
     // this.initGizmo()
 
@@ -424,23 +421,60 @@ export default class Transformer {
       scaleMatrix,
       this.gizmoCachedScaleMatrix
     )
+
+    const direction =
+      this.gizmo!.relativeDirections[this.activeAxisType as AxisType]
+    const directionAfterScale = Cesium.Matrix4.multiplyByPointAsVector(
+      scaleMatrix,
+      direction,
+      new Cesium.Cartesian3()
+    )
+    // this.gizmo!.relativeDirections[this.activeAxisType as AxisType] =
+    //   directionAfterScale
+    const angle = Cesium.Cartesian3.angleBetween(direction, directionAfterScale)
+
+    const rotationAfterScale = Cesium.Matrix4.fromRotationTranslation(
+      Cesium.Matrix3.fromQuaternion(
+        Cesium.Quaternion.fromAxisAngle(
+          Cesium.Cartesian3.cross(
+            direction,
+            directionAfterScale,
+            new Cesium.Cartesian3()
+          ),
+          angle
+        )
+      ),
+      Cesium.Cartesian3.ZERO,
+      new Cesium.Matrix4()
+    )
+    const rotationAfterScaleInverse = Cesium.Matrix4.inverse(
+      rotationAfterScale,
+      new Cesium.Matrix4()
+    )
+    // const rotation = Cesium.Matrix4.fromRotation(Cesium.Matrix4.getRotation(this.element.modelMatrix, new Cesium.Matrix3()))
     const cacheRotationInverse = Cesium.Matrix4.inverse(
       this.elementCachedRotationMatrix,
       new Cesium.Matrix4()
     )
+
     this.linearTransformAroundCenter(
       cacheRotationInverse,
-      this.cachedCenter!,
+      this.elementCenterRelativeBoundingSphere!,
       this.element.modelMatrix
     )
     this.linearTransformAroundCenter(
       scaleMatrix,
-      this.cachedCenter!,
+      this.elementCenterRelativeBoundingSphere!,
+      this.element.modelMatrix
+    )
+    this.linearTransformAroundCenter(
+      rotationAfterScaleInverse,
+      this.elementCenterRelativeBoundingSphere!,
       this.element.modelMatrix
     )
     this.linearTransformAroundCenter(
       this.elementCachedRotationMatrix,
-      this.cachedCenter!,
+      this.elementCenterRelativeBoundingSphere!,
       this.element.modelMatrix
     )
     this.gizmo?.axises.forEach((axis) => {
@@ -452,11 +486,18 @@ export default class Transformer {
           axis.modelMatrix
         )
       } else {
-        this.linearTransformAroundCenter(
-          scaleMatrix,
-          this.center!,
-          axis.modelMatrix
-        )
+        if (this.activeAxisType == id) {
+          this.linearTransformAroundCenter(
+            scaleMatrix,
+            this.center!,
+            axis.modelMatrix
+          )
+          this.linearTransformAroundCenter(
+            rotationAfterScaleInverse,
+            this.center!,
+            axis.modelMatrix
+          )
+        }
       }
     })
   }
@@ -570,13 +611,14 @@ export default class Transformer {
           scene.camera.position,
           this.center!
         )
-        const scaleElements = [1, 1, 1]
-        scaleElements[this.activeAxisType!] =
-          (distanceByDirection / distanceToCamera) * 10 + 1
+        const scaleElements = [1, 1, 1].map(
+          (item) => (distanceByDirection / distanceToCamera) * 5 + item
+        )
+        // scaleElements[this.activeAxisType!] =
+        //   (distanceByDirection / distanceToCamera) * 5 + 1
         const scale = Cesium.Matrix4.fromScale(
           Cesium.Cartesian3.fromArray(scaleElements)
         )
-        // const scale = Cesium.Matrix4.fromScale(offset)
 
         this.updateScale(scale)
       }
@@ -607,8 +649,6 @@ export default class Transformer {
         centerToStartIntersectionRay.direction || startPoint,
         centerToEndIntersectionRay.direction || endPoint
       )
-      this.cacheAngle += angle
-      console.log(Cesium.Math.toDegrees(this.cacheAngle))
       if (!this.intersectStartPoint) {
         this.intersectStartPoint = this.pointPrimitiveCollection!.add({
           color: Cesium.Color.YELLOW,
@@ -670,6 +710,9 @@ export default class Transformer {
 
   public destory() {
     this.detoryHandler()
+    this.gizmo?.destory()
+
+    document.removeEventListener('keyup', this.keyEvent)
   }
 
   private detoryHandler() {
