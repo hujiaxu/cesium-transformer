@@ -60,7 +60,7 @@ export default class BaseAxis {
       )
     })
     this.directions = directions
-    this.relativeDirections = directions
+    // this.relativeDirections = directions
   }
 
   public updateDirections(directions: Cesium.Cartesian3[]) {

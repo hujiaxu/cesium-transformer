@@ -422,23 +422,24 @@ export default class Transformer {
       this.gizmoCachedScaleMatrix
     )
 
-    const direction =
+    const direction = this.gizmo!.directions[this.activeAxisType as AxisType]
+    const relativeDirection =
       this.gizmo!.relativeDirections[this.activeAxisType as AxisType]
-    const directionAfterScale = Cesium.Matrix4.multiplyByPointAsVector(
-      scaleMatrix,
-      direction,
-      new Cesium.Cartesian3()
-    )
+    // const directionAfterScale = Cesium.Matrix4.multiplyByPointAsVector(
+    //   scaleMatrix,
+    //   direction,
+    //   new Cesium.Cartesian3()
+    // )
     // this.gizmo!.relativeDirections[this.activeAxisType as AxisType] =
     //   directionAfterScale
-    const angle = Cesium.Cartesian3.angleBetween(direction, directionAfterScale)
+    const angle = Cesium.Cartesian3.angleBetween(direction, relativeDirection)
 
     const rotationAfterScale = Cesium.Matrix4.fromRotationTranslation(
       Cesium.Matrix3.fromQuaternion(
         Cesium.Quaternion.fromAxisAngle(
           Cesium.Cartesian3.cross(
             direction,
-            directionAfterScale,
+            relativeDirection,
             new Cesium.Cartesian3()
           ),
           angle
@@ -463,12 +464,17 @@ export default class Transformer {
       this.element.modelMatrix
     )
     this.linearTransformAroundCenter(
+      rotationAfterScaleInverse,
+      this.elementCenterRelativeBoundingSphere!,
+      this.element.modelMatrix
+    )
+    this.linearTransformAroundCenter(
       scaleMatrix,
       this.elementCenterRelativeBoundingSphere!,
       this.element.modelMatrix
     )
     this.linearTransformAroundCenter(
-      rotationAfterScaleInverse,
+      rotationAfterScale,
       this.elementCenterRelativeBoundingSphere!,
       this.element.modelMatrix
     )
@@ -488,12 +494,17 @@ export default class Transformer {
       } else {
         if (this.activeAxisType == id) {
           this.linearTransformAroundCenter(
+            rotationAfterScaleInverse,
+            this.center!,
+            axis.modelMatrix
+          )
+          this.linearTransformAroundCenter(
             scaleMatrix,
             this.center!,
             axis.modelMatrix
           )
           this.linearTransformAroundCenter(
-            rotationAfterScaleInverse,
+            rotationAfterScale,
             this.center!,
             axis.modelMatrix
           )
@@ -611,11 +622,9 @@ export default class Transformer {
           scene.camera.position,
           this.center!
         )
-        const scaleElements = [1, 1, 1].map(
-          (item) => (distanceByDirection / distanceToCamera) * 5 + item
-        )
-        // scaleElements[this.activeAxisType!] =
-        //   (distanceByDirection / distanceToCamera) * 5 + 1
+        const scaleElements = [1, 1, 1]
+        scaleElements[this.activeAxisType!] =
+          (distanceByDirection / distanceToCamera) * 5 + 1
         const scale = Cesium.Matrix4.fromScale(
           Cesium.Cartesian3.fromArray(scaleElements)
         )
