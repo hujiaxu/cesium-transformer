@@ -1,5 +1,6 @@
 import * as Cesium from 'cesium';
-import BaseAxis, { AxisOptions } from './baseAxis';
+import BaseAxis from './baseAxis';
+import { AxisOptions } from './type';
 export default class RotationAxis extends BaseAxis {
     cachedModelMatrixs: Cesium.Matrix4[];
     constructor({ scene, boundingSphere, elementModelMatrix }: AxisOptions);

@@ -1,6 +1,7 @@
 import * as Cesium from 'cesium'
 
-import BaseAxis, { AxisOptions, AxisType } from './baseAxis'
+import BaseAxis from './baseAxis'
+import { AxisOptions, AxisType } from './type'
 
 export default class RotationAxis extends BaseAxis {
   public cachedModelMatrixs: Cesium.Matrix4[] = []

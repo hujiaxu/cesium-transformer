@@ -1,38 +1,26 @@
 import * as Cesium from 'cesium'
-import BaseAxis, { AxisOptions, AxisType } from './baseAxis'
-
-// interface AxisGeometryInstances {
-//   geometryInstance: Cesium.GeometryInstance
-// }
+import BaseAxis from './baseAxis'
+import { AxisOptions, AxisType } from './type'
 
 export default class ScaleAxis extends BaseAxis {
   constructor({ scene, boundingSphere }: AxisOptions) {
     super({ scene, boundingSphere })
-    // const directions = [
-    //   Cesium.Cartesian3.UNIT_X,
-    //   Cesium.Cartesian3.UNIT_Y,
-    //   Cesium.Cartesian3.UNIT_Z
-    // ]
-    // this.updateDirections(directions)
     this.createAxis()
   }
 
   private createAxisGeometryInstance({
-    direction,
     id,
-    color
+    color,
+    endPoint
   }: {
     direction: Cesium.Cartesian3
     id: string
     color: Cesium.Color
+    endPoint: Cesium.Cartesian3
   }) {
-    const ray = new Cesium.Ray(this.center, direction)
-    const point = Cesium.Ray.getPoint(ray, this.radius)
-    const boxEndPoint = Cesium.Ray.getPoint(ray, this.radius * 0.9)
     const polyline = new Cesium.PolylineGeometry({
-      positions: [this.center, point],
+      positions: [this.center, endPoint],
       width: 5
-      // vertexFormat: Cesium.PolylineMaterialAppearance.VERTEX_FORMAT
     })
     const polylineGeometryInstance = new Cesium.GeometryInstance({
       geometry: polyline,
@@ -48,11 +36,11 @@ export default class ScaleAxis extends BaseAxis {
     })
     const boxGeometryInstance = new Cesium.GeometryInstance({
       geometry: box,
-      // modelMatrix: Cesium.Matrix4.fromTranslation(point),
-      modelMatrix: Cesium.Transforms.eastNorthUpToFixedFrame(boxEndPoint),
+      modelMatrix: Cesium.Transforms.eastNorthUpToFixedFrame(endPoint),
       attributes: {
         color: Cesium.ColorGeometryInstanceAttribute.fromColor(color)
       },
+
       id: `${id}-scale-box`
     })
 
@@ -67,7 +55,8 @@ export default class ScaleAxis extends BaseAxis {
       return this.createAxisGeometryInstance({
         direction: this.directions[index],
         id: id.toString(),
-        color: axisColor[index]
+        color: axisColor[index],
+        endPoint: this.endPoints[index]
       })
     })
 

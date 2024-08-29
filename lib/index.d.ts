@@ -1,18 +1,10 @@
 import * as Cesium from 'cesium';
-import { ModeCollection } from './type';
-type elementType = Cesium.Primitive | Cesium.Cesium3DTileset | Cesium.Model;
-interface Options {
-    scene: Cesium.Scene;
-    element: elementType;
-    boundingSphere: Cesium.BoundingSphere;
-}
+import { ModeCollection, elementType, TransformerConstructorOptions } from './type';
 export default class Transformer {
     scene: Cesium.Scene;
     element: elementType;
     private boundingSphere;
     private elementCenterRelativeBoundingSphere;
-    private gizmoCachedRotationMatrix;
-    private gizmoCachedScaleMatrix;
     private elementCachedRotationMatrix;
     elementCachedScaleMatrix: Cesium.Matrix4;
     private cachedCenter;
@@ -22,7 +14,6 @@ export default class Transformer {
     private activeAxisType;
     private gizmo;
     private mode;
-    private gizmoModesBillboard;
     private intersectStartPoint;
     private intersectEndPoint;
     private pointPrimitiveCollection;
@@ -31,10 +22,9 @@ export default class Transformer {
     private onMouseUp;
     private onMouseMove;
     private keyEvent;
-    constructor({ scene, element, boundingSphere }: Options);
+    constructor({ scene, element, boundingSphere }: TransformerConstructorOptions);
     get isDetoryed(): boolean;
     private init;
-    initGizmo(): void;
     changeMode(mode: ModeCollection): void;
     private applyLinearMatrixToGizmo;
     private createPlane;
@@ -53,4 +43,3 @@ export default class Transformer {
     destory(): void;
     private detoryHandler;
 }
-export {};

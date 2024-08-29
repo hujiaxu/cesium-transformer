@@ -1,5 +1,6 @@
 import * as Cesium from 'cesium'
-import BaseAxis, { AxisOptions, AxisType } from './baseAxis'
+import BaseAxis from './baseAxis'
+import { AxisOptions, AxisType } from './type'
 
 export default class TranslationAxis extends BaseAxis {
   constructor({ scene, boundingSphere }: AxisOptions) {
