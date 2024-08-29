@@ -34,10 +34,10 @@ pnpm install cesium-transformer
       viewer, element, boundingSphere
     });
     ```
-    <!-- ![translation](./assets/translation.gif)
+    ![translation](./assets/translation.gif)
     ![rotation](./assets/rotation.gif)
     ![scale](./assets/scale.gif)
-   -->
+  
   - **functions**
 
     - **changeMode(mode)**
