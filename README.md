@@ -16,7 +16,7 @@ pnpm install cesium-transformer
 
 ### Usage
 
-- **Transformer(viewer, element, boundingSphere)**
+- **Transformer({viewer, element, boundingSphere})**
   - Applies a geometric transformation to the specified element in the Cesium scene.
   
   - **Parameters**:
