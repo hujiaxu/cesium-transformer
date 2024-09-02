@@ -1,9 +1,35 @@
 {
   "name": "cesium-transformer",
-  "version": "1.0.10",
+  "version": "1.0.11",
   "description": "cesium-transformer",
+  "license": "ISC",
   "main": "index.js",
   "files": ["dist", "lib", "module"],
+  "author": {
+    "name": "hujiaxu"
+  },
+  "contributors": [
+    {
+      "name": "hujiaxu",
+      "url": "https://github.com/hujiaxu/cesium-transformer"
+    }
+  ],
+  "keywords": [
+    "3D",
+    "webgl",
+    "geospatial",
+    "map",
+    "globe",
+    "cesium",
+    "transformer"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/hujiaxu/cesium-transformer"
+  },
+  "bugs": {
+    "url": "https://github.com/hujiaxu/cesium-transformer/issues"
+  },
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "dev:comment": "启动开发编译",
@@ -16,9 +42,6 @@
     "watch": "nodemon --ignore dist/ --ignore node_modules/ --watch src/ -C -e js,jsx,ts,tsx,css,less --debug -x 'pnpm run build && yalc publish'",
     "build": "npm run eslint && npm run prettier && rm -rf lib && tsc --build"
   },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
   "devDependencies": {
     "@types/node": "^22.0.0",
     "@typescript-eslint/eslint-plugin": "^7.18.0",
