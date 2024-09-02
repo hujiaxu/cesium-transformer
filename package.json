@@ -1,8 +1,9 @@
 {
   "name": "cesium-transformer",
-  "version": "1.0.9",
+  "version": "1.0.10",
   "description": "cesium-transformer",
   "main": "index.js",
+  "files": ["dist", "lib", "module"],
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "dev:comment": "启动开发编译",
